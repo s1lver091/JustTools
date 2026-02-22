@@ -9,6 +9,7 @@
 	import { Sun, Moon, Menu, PanelLeftClose, PanelLeft, Wrench, Sparkles } from '@lucide/svelte';
 	import { resolve } from '$app/paths';
 	import { tools } from '$lib/tools';
+	import ToolSearch from '$lib/components/shared/ToolSearch.svelte';
 	import './layout.css';
 
 	let { children }: { children: Snippet } = $props();
@@ -70,7 +71,9 @@
 		<span class="text-lg font-semibold tracking-tight">JustTools</span>
 	</a>
 
-	<div class="flex-1"></div>
+	<div class="flex flex-1 justify-center px-4">
+		<ToolSearch />
+	</div>
 
 	<!-- Theme toggle -->
 	<Tooltip.Root>
