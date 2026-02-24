@@ -10,7 +10,13 @@ import {
 	Highlighter,
 	PenLine,
 	Layers,
-	FilePen
+	FilePen,
+	Crop,
+	SlidersHorizontal,
+	ArrowRightLeft,
+	Info,
+	Pipette,
+	FolderSync
 } from '@lucide/svelte';
 import type { Component } from 'svelte';
 
@@ -132,7 +138,51 @@ export const tools: Tool[] = [
 		href: '/tools/image',
 		icon: ImageIcon,
 		description: 'Crop, resize, compress, adjust, and convert images. No server involved.',
-		color: 'bg-green-500/10 text-green-500'
+		color: 'bg-green-500/10 text-green-500',
+		subTools: [
+			{
+				id: 'image-editor',
+				name: 'Edit Image',
+				href: '/tools/image/editor',
+				icon: Crop,
+				description: 'Crop, rotate, flip, and resize images'
+			},
+			{
+				id: 'image-adjust',
+				name: 'Adjustments',
+				href: '/tools/image/adjust',
+				icon: SlidersHorizontal,
+				description: 'Brightness, contrast, filters, and more'
+			},
+			{
+				id: 'image-convert',
+				name: 'Convert & Export',
+				href: '/tools/image/convert',
+				icon: ArrowRightLeft,
+				description: 'Change format and compress images'
+			},
+			{
+				id: 'image-exif',
+				name: 'EXIF Data',
+				href: '/tools/image/exif',
+				icon: Info,
+				description: 'View and remove image metadata'
+			},
+			{
+				id: 'image-colorpicker',
+				name: 'Color Picker',
+				href: '/tools/image/colorpicker',
+				icon: Pipette,
+				description: 'Pick colors from any image'
+			},
+			{
+				id: 'image-batch',
+				name: 'Batch Processing',
+				href: '/tools/image/batch',
+				icon: FolderSync,
+				description: 'Apply operations to multiple images'
+			}
+		]
 	},
 	{
 		id: 'fileshare',
