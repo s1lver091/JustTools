@@ -80,6 +80,20 @@ Enjoy writing!
 	let isSyncing = false;
 	let scrollSyncEnabled = $state(true);
 
+	// Responsive layout
+	let isDesktop = $state(typeof window !== 'undefined' && window.matchMedia('(min-width: 768px)').matches);
+
+	$effect(() => {
+		const mql = window.matchMedia('(min-width: 768px)');
+		isDesktop = mql.matches;
+
+		function handleChange(e: MediaQueryListEvent) {
+			isDesktop = e.matches;
+		}
+		mql.addEventListener('change', handleChange);
+		return () => mql.removeEventListener('change', handleChange);
+	});
+
 	// Word/character/line counts
 	const wordCount = $derived(content.trim() ? content.trim().split(/\s+/).filter(Boolean).length : 0);
 	const charCount = $derived(content.length);
@@ -397,58 +411,13 @@ Enjoy writing!
 	</div>
 </div>
 
-<!-- Desktop: side-by-side split pane -->
-<div class="editor-container hidden flex-1 overflow-hidden md:flex" style="height: calc(100vh - 220px);">
-	<!-- Editor pane -->
-	<div class="editor-pane flex flex-col overflow-hidden" style="width: {leftPaneWidth}%;">
-		<div
-			class="h-full overflow-hidden rounded-l-lg border"
-			use:codemirror={{
-				value: content,
-				onChange: handleEditorChange,
-				onReady: handleEditorReady,
-				darkMode: theme.isDark,
-				extraKeys
-			}}
-		></div>
-	</div>
-
-	<!-- Resizable divider -->
-	<div
-		class="divider bg-border hover:bg-primary/50 flex w-1 cursor-col-resize items-center justify-center transition-colors {dividerDragging
-			? 'bg-primary/50'
-			: ''}"
-		role="separator"
-		aria-orientation="vertical"
-		onpointerdown={handleDividerPointerDown}
-		onpointermove={handleDividerPointerMove}
-		onpointerup={handleDividerPointerUp}
-	>
-		<div class="bg-muted-foreground/50 h-8 w-0.5 rounded-full"></div>
-	</div>
-
-	<!-- Preview pane -->
-	<div
-		bind:this={previewPaneRef}
-		class="preview-pane border-border overflow-y-auto rounded-r-lg border bg-white p-6 dark:bg-zinc-950"
-		style="width: {100 - leftPaneWidth}%;"
-		onscroll={handlePreviewScroll}
-	>
-		<MarkdownPreview html={parsedHtml} onToggleCheckbox={handleToggleCheckbox} />
-	</div>
-</div>
-
-<!-- Mobile: tabbed view -->
-<div class="mobile-tabs flex flex-1 flex-col md:hidden" style="height: calc(100vh - 220px);">
-	<Tabs.Root bind:value={activeTab}>
-		<Tabs.List class="mb-2 w-full">
-			<Tabs.Trigger value="editor" class="flex-1">Editor</Tabs.Trigger>
-			<Tabs.Trigger value="preview" class="flex-1">Preview</Tabs.Trigger>
-		</Tabs.List>
-
-		<Tabs.Content value="editor" class="flex-1">
+{#if isDesktop}
+	<!-- Desktop: side-by-side split pane -->
+	<div class="editor-container flex flex-1 overflow-hidden" style="height: calc(100vh - 220px);">
+		<!-- Editor pane -->
+		<div class="editor-pane flex flex-col overflow-hidden" style="width: {leftPaneWidth}%;">
 			<div
-				class="min-h-[400px] overflow-hidden rounded-lg border"
+				class="h-full overflow-hidden rounded-l-lg border"
 				use:codemirror={{
 					value: content,
 					onChange: handleEditorChange,
@@ -457,15 +426,62 @@ Enjoy writing!
 					extraKeys
 				}}
 			></div>
-		</Tabs.Content>
+		</div>
 
-		<Tabs.Content value="preview" class="flex-1">
-			<div class="border-border overflow-y-auto rounded-lg border bg-white p-6 dark:bg-zinc-950">
-				<MarkdownPreview html={parsedHtml} onToggleCheckbox={handleToggleCheckbox} />
-			</div>
-		</Tabs.Content>
-	</Tabs.Root>
-</div>
+		<!-- Resizable divider -->
+		<div
+			class="divider bg-border hover:bg-primary/50 flex w-1 cursor-col-resize items-center justify-center transition-colors {dividerDragging
+				? 'bg-primary/50'
+				: ''}"
+			role="separator"
+			aria-orientation="vertical"
+			onpointerdown={handleDividerPointerDown}
+			onpointermove={handleDividerPointerMove}
+			onpointerup={handleDividerPointerUp}
+		>
+			<div class="bg-muted-foreground/50 h-8 w-0.5 rounded-full"></div>
+		</div>
+
+		<!-- Preview pane -->
+		<div
+			bind:this={previewPaneRef}
+			class="preview-pane border-border overflow-y-auto rounded-r-lg border bg-white p-6 dark:bg-zinc-950"
+			style="width: {100 - leftPaneWidth}%;"
+			onscroll={handlePreviewScroll}
+		>
+			<MarkdownPreview html={parsedHtml} onToggleCheckbox={handleToggleCheckbox} />
+		</div>
+	</div>
+{:else}
+	<!-- Mobile: tabbed view -->
+	<div class="mobile-tabs flex flex-1 flex-col" style="height: calc(100vh - 220px);">
+		<Tabs.Root bind:value={activeTab}>
+			<Tabs.List class="mb-2 w-full">
+				<Tabs.Trigger value="editor" class="flex-1">Editor</Tabs.Trigger>
+				<Tabs.Trigger value="preview" class="flex-1">Preview</Tabs.Trigger>
+			</Tabs.List>
+
+			<Tabs.Content value="editor" class="flex-1">
+				<div
+					class="min-h-[400px] overflow-hidden rounded-lg border"
+					use:codemirror={{
+						value: content,
+						onChange: handleEditorChange,
+						onReady: handleEditorReady,
+						darkMode: theme.isDark,
+						extraKeys
+					}}
+				></div>
+			</Tabs.Content>
+
+			<Tabs.Content value="preview" class="flex-1">
+				<div class="border-border overflow-y-auto rounded-lg border bg-white p-6 dark:bg-zinc-950">
+					<MarkdownPreview html={parsedHtml} onToggleCheckbox={handleToggleCheckbox} />
+				</div>
+			</Tabs.Content>
+		</Tabs.Root>
+	</div>
+{/if}
 
 <!-- Status bar -->
 <div class="status-bar text-muted-foreground mt-2 flex min-h-[24px] items-center justify-end gap-3 px-2 text-xs">
