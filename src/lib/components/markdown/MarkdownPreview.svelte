@@ -7,14 +7,27 @@
 	let { html, onToggleCheckbox }: Props = $props();
 	let previewRef = $state<HTMLDivElement | null>(null);
 
+	// Remove 'disabled' attribute from checkboxes rendered by marked/GFM
+	// so they can be clicked and we can handle the toggle manually.
+	$effect(() => {
+		if (previewRef && html) {
+			const checkboxes = previewRef.querySelectorAll('input[type="checkbox"]');
+			checkboxes.forEach((cb) => {
+				cb.removeAttribute('disabled');
+			});
+		}
+	});
+
 	function handleClick(e: MouseEvent) {
 		if (!onToggleCheckbox) return;
 		const target = e.target as HTMLElement;
-		if (target.tagName === 'INPUT' && target.getAttribute('type') === 'checkbox') {
+		
+		// Handle click on checkbox directly
+		if (target instanceof HTMLInputElement && target.type === 'checkbox') {
 			e.preventDefault();
 			const checkboxes = previewRef?.querySelectorAll('input[type="checkbox"]');
 			if (!checkboxes) return;
-			const index = Array.from(checkboxes).indexOf(target as HTMLInputElement);
+			const index = Array.from(checkboxes).indexOf(target);
 			if (index >= 0) {
 				onToggleCheckbox(index);
 			}

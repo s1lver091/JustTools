@@ -53,20 +53,21 @@
 
 	function prefixLine(prefix: string) {
 		if (!editorView) return;
-		const { from } = editorView.state.selection.main;
+		const { from, to } = editorView.state.selection.main;
 		const line = editorView.state.doc.lineAt(from);
 		editorView.dispatch({
-			changes: { from: line.from, to: line.from, insert: prefix }
+			changes: { from: line.from, to: line.from, insert: prefix },
+			selection: { anchor: from + prefix.length, head: to + prefix.length }
 		});
 		editorView.focus();
 	}
 
-	function insertBlock(text: string) {
+	function insertBlock(text: string, cursorOffset?: number) {
 		if (!editorView) return;
 		const { from } = editorView.state.selection.main;
 		editorView.dispatch({
 			changes: { from, insert: text },
-			selection: { anchor: from + text.indexOf('\n') + 1 }
+			selection: { anchor: from + (cursorOffset ?? text.length) }
 		});
 		editorView.focus();
 	}
@@ -74,17 +75,20 @@
 	function insertHeading(level: number) {
 		const prefix = '#'.repeat(level) + ' ';
 		if (!editorView) return;
-		const { from } = editorView.state.selection.main;
+		const { from, to } = editorView.state.selection.main;
 		const line = editorView.state.doc.lineAt(from);
 		const existingMatch = line.text.match(/^#{1,6}\s/);
 
 		if (existingMatch) {
+			const diff = prefix.length - existingMatch[0].length;
 			editorView.dispatch({
-				changes: { from: line.from, to: line.from + existingMatch[0].length, insert: prefix }
+				changes: { from: line.from, to: line.from + existingMatch[0].length, insert: prefix },
+				selection: { anchor: from + diff, head: to + diff }
 			});
 		} else {
 			editorView.dispatch({
-				changes: { from: line.from, to: line.from, insert: prefix }
+				changes: { from: line.from, to: line.from, insert: prefix },
+				selection: { anchor: from + prefix.length, head: to + prefix.length }
 			});
 		}
 		editorView.focus();
@@ -168,7 +172,7 @@
 		{
 			label: 'Code Block',
 			icon: FileCode2,
-			action: () => insertBlock('```\n\n```\n')
+			action: () => insertBlock('```\n\n```\n', 4)
 		},
 		{ label: 'Table', icon: Table, action: () => insertBlock('\n' + TABLE_TEMPLATE) },
 		{ label: 'Horizontal Rule', icon: Minus, action: () => insertBlock('\n---\n') }

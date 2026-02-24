@@ -195,16 +195,20 @@ Enjoy writing!
 	function handleToggleCheckbox(index: number) {
 		let count = 0;
 		const lines = content.split('\n');
+		// Robust regex for task list markers: supports -, *, +, and 1. style lists
+		const checkboxRegex = /^(\s*([-*+]|\d+[.)])\s+)\[([ xX])\]/;
+		
 		for (let i = 0; i < lines.length; i++) {
-			const unchecked = lines[i].match(/^(\s*-\s*)\[ \]/);
-			const checked = lines[i].match(/^(\s*-\s*)\[x\]/i);
-			if (unchecked || checked) {
+			const match = lines[i].match(checkboxRegex);
+			if (match) {
 				if (count === index) {
-					if (unchecked) {
-						lines[i] = lines[i].replace(/\[ \]/, '[x]');
-					} else {
-						lines[i] = lines[i].replace(/\[x\]/i, '[ ]');
-					}
+					const prefix = match[1];
+					const isChecked = match[3].toLowerCase() === 'x';
+					const newChar = isChecked ? ' ' : 'x';
+					
+					// Replace the checkbox while preserving the rest of the line
+					lines[i] = `${prefix}[${newChar}]${lines[i].slice(match[0].length)}`;
+					
 					const newContent = lines.join('\n');
 					content = newContent;
 					hasUnsavedChanges = newContent !== savedContent;
@@ -399,7 +403,7 @@ Enjoy writing!
 <div class="tool-header">
 	<ToolHeader
 		title="Markdown Editor"
-		description="Write, preview, and export Markdown documents{currentFilename ? ` - ${currentFilename}` : ''}{hasUnsavedChanges ? ' (unsaved)' : ''}"
+		description="Write, preview, and export Markdown documents{currentFilename ? ` - ${currentFilename}` : ''}"
 	/>
 </div>
 
