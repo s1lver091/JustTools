@@ -153,16 +153,16 @@
 	<div class="mx-auto max-w-2xl space-y-6">
 		<!-- Preview -->
 		<Card.Root>
-			<Card.Content class="flex items-center gap-4 pt-6">
-				<div class="bg-muted flex shrink-0 items-center justify-center overflow-hidden rounded-lg" style="max-width: 120px; max-height: 90px;">
+			<Card.Content class="flex flex-wrap items-center gap-3 pt-6 sm:gap-4">
+				<div class="bg-muted flex shrink-0 items-center justify-center overflow-hidden rounded-lg" style="max-width: 80px; max-height: 60px;">
 					<canvas
 						bind:this={previewCanvasRef}
 						class="max-h-full max-w-full object-contain"
 					></canvas>
 				</div>
-				<div class="flex-1">
-					<p class="font-medium">{fileName}</p>
-					<p class="text-muted-foreground text-sm">
+				<div class="min-w-0 flex-1">
+					<p class="truncate font-medium">{fileName}</p>
+					<p class="text-muted-foreground text-xs sm:text-sm">
 						{image.width} x {image.height} - {formatFileSize(fileSize)}
 					</p>
 				</div>
@@ -222,9 +222,9 @@
 		{#if result}
 			<Card.Root>
 				<Card.Header>
-					<div class="flex items-center justify-between">
+					<div class="flex flex-wrap items-center justify-between gap-2">
 						<Card.Title class="text-sm">Extracted Text</Card.Title>
-						<div class="flex items-center gap-2">
+						<div class="flex flex-wrap items-center gap-2">
 							<Badge variant="secondary" class="text-xs">
 								{Math.round(result.confidence)}% confidence
 							</Badge>

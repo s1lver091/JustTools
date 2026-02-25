@@ -108,9 +108,9 @@
 {:else}
 	<div class="mx-auto max-w-2xl space-y-4">
 		<!-- File info bar -->
-		<div class="flex items-center justify-between">
-			<div>
-				<p class="font-medium">{fileName}</p>
+		<div class="flex flex-wrap items-center justify-between gap-2">
+			<div class="min-w-0">
+				<p class="truncate font-medium">{fileName}</p>
 				<p class="text-muted-foreground text-sm">{formatFileSize(file.size)}</p>
 			</div>
 			<Button variant="ghost" size="sm" onclick={loadAnother}>

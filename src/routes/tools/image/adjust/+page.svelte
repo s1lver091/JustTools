@@ -216,10 +216,10 @@
 {#if !image}
 	<FileDropzone accept={ACCEPTED_IMAGE_TYPES} onFiles={handleFiles} />
 {:else}
-	<div class="flex gap-4" style="height: calc(100vh - 220px); min-height: 400px;">
+	<div class="flex flex-col gap-4 lg:flex-row" style="min-height: 400px;">
 		<!-- Canvas preview -->
-		<div class="relative flex-1 overflow-auto rounded-lg border">
-			<div class="flex h-full items-center justify-center bg-black/5 p-4">
+		<div class="relative h-[50vh] overflow-auto rounded-lg border lg:h-auto lg:flex-1" style="min-height: 250px;">
+			<div class="flex h-full items-center justify-center bg-black/5 p-2 sm:p-4">
 				<canvas
 					bind:this={glCanvas}
 					class="max-h-full max-w-full object-contain"
@@ -227,14 +227,14 @@
 				></canvas>
 			</div>
 			{#if noWebGL}
-				<div class="bg-destructive/10 text-destructive absolute inset-0 flex items-center justify-center">
+				<div class="bg-destructive/10 text-destructive absolute inset-0 flex items-center justify-center p-4 text-center text-sm">
 					WebGL not available. Using software rendering (may be slower).
 				</div>
 			{/if}
 		</div>
 
 		<!-- Controls panel -->
-		<div class="w-80 shrink-0 space-y-4 overflow-y-auto">
+		<div class="w-full space-y-4 lg:w-80 lg:shrink-0 lg:overflow-y-auto">
 			<!-- Actions -->
 			<div class="flex items-center gap-2">
 				<Button variant="outline" size="sm" onclick={resetAll}>
@@ -345,7 +345,7 @@
 			</Button>
 
 			<!-- Image info -->
-			<div class="text-muted-foreground space-y-1 text-xs">
+			<div class="text-muted-foreground hidden space-y-1 text-xs lg:block">
 				<div>File: {fileName}</div>
 				<div>Size: {formatFileSize(fileSize)}</div>
 				<div>Dimensions: {image.width} x {image.height}</div>

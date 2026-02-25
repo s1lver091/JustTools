@@ -180,16 +180,16 @@
 	<div class="mx-auto max-w-2xl space-y-6">
 		<!-- Preview -->
 		<Card.Root>
-			<Card.Content class="flex items-center gap-4 pt-6">
-				<div class="bg-muted flex size-24 shrink-0 items-center justify-center overflow-hidden rounded-lg">
+			<Card.Content class="flex flex-wrap items-center gap-3 pt-6 sm:gap-4">
+				<div class="bg-muted flex size-16 shrink-0 items-center justify-center overflow-hidden rounded-lg sm:size-24">
 					<canvas
 						bind:this={previewCanvasRef}
 						class="max-h-full max-w-full object-contain"
 					></canvas>
 				</div>
-				<div class="flex-1">
-					<p class="font-medium">{fileName}</p>
-					<p class="text-muted-foreground text-sm">
+				<div class="min-w-0 flex-1">
+					<p class="truncate font-medium">{fileName}</p>
+					<p class="text-muted-foreground text-xs sm:text-sm">
 						{image.width} x {image.height} - {originalFormat} - {formatFileSize(originalSize)}
 					</p>
 				</div>

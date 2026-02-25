@@ -188,7 +188,7 @@
 		<!-- File list -->
 		<Card.Root>
 			<Card.Header class="pb-3">
-				<div class="flex items-center justify-between">
+				<div class="flex flex-wrap items-center justify-between gap-2">
 					<Card.Title class="text-sm">{files.length} images</Card.Title>
 					<div class="flex gap-2">
 						<Button variant="ghost" size="sm" onclick={() => { const input = document.createElement('input'); input.type = 'file'; input.accept = ACCEPTED_IMAGE_TYPES; input.multiple = true; input.onchange = () => { if (input.files) handleFiles(Array.from(input.files)); }; input.click(); }}>
@@ -203,9 +203,9 @@
 			<Card.Content>
 				<div class="max-h-60 space-y-1 overflow-y-auto">
 					{#each files as entry, i (entry.name + i)}
-						<div class="flex items-center gap-3 rounded-md px-2 py-1.5 text-sm {entry.status === 'error' ? 'bg-destructive/5' : ''}">
-							<span class="flex-1 truncate">{entry.name}</span>
-							<span class="text-muted-foreground text-xs">{formatFileSize(entry.size)}</span>
+						<div class="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm {entry.status === 'error' ? 'bg-destructive/5' : ''}">
+							<span class="min-w-0 flex-1 truncate">{entry.name}</span>
+							<span class="text-muted-foreground hidden text-xs sm:inline">{formatFileSize(entry.size)}</span>
 							{#if entry.status === 'processing'}
 								<Loader2 class="size-4 animate-spin text-blue-500" />
 							{:else if entry.status === 'done'}

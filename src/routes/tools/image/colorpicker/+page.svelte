@@ -182,10 +182,10 @@
 {#if !image}
 	<FileDropzone accept={ACCEPTED_IMAGE_TYPES} onFiles={handleFiles} />
 {:else}
-	<div class="flex gap-4" style="height: calc(100vh - 220px); min-height: 400px;">
+	<div class="flex flex-col gap-4 lg:flex-row" style="min-height: 400px;">
 		<!-- Canvas -->
-		<div class="relative flex-1 overflow-auto rounded-lg border">
-			<div class="flex h-full items-center justify-center bg-black/5 p-4">
+		<div class="relative h-[50vh] overflow-auto rounded-lg border lg:h-auto lg:flex-1" style="min-height: 250px;">
+			<div class="flex h-full items-center justify-center bg-black/5 p-2 sm:p-4">
 				<!-- svelte-ignore a11y_no_static_element_interactions -->
 				<canvas
 					bind:this={canvasRef}
@@ -208,8 +208,8 @@
 		</div>
 
 		<!-- Color info panel -->
-		<div class="w-72 shrink-0 space-y-4 overflow-y-auto">
-			<div class="flex items-center gap-2">
+		<div class="w-full space-y-4 lg:w-72 lg:shrink-0 lg:overflow-y-auto">
+			<div class="flex flex-wrap items-center gap-2">
 				<Crosshair class="text-muted-foreground size-4" />
 				<span class="text-sm font-medium">Click the image to pick a color</span>
 				<div class="flex-1"></div>

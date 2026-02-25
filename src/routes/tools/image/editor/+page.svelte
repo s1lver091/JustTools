@@ -200,9 +200,9 @@
 		onFiles={handleFiles}
 	/>
 {:else}
-	<div class="flex gap-4" style="height: calc(100vh - 220px); min-height: 400px;">
-		<!-- Left: Canvas area -->
-		<div class="relative flex-1 overflow-hidden rounded-lg border">
+	<div class="flex flex-col gap-4 lg:flex-row" style="min-height: 400px;">
+		<!-- Canvas area -->
+		<div class="relative h-[50vh] overflow-hidden rounded-lg border lg:h-auto lg:flex-1" style="min-height: 250px;">
 			<ImageCanvas {image} bind:zoom bind:panX bind:panY />
 			{#if isCropping}
 				<CropOverlay
@@ -217,8 +217,8 @@
 			{/if}
 		</div>
 
-		<!-- Right: Controls panel -->
-		<div class="w-72 shrink-0 space-y-4 overflow-y-auto">
+		<!-- Controls panel -->
+		<div class="w-full space-y-4 lg:w-72 lg:shrink-0 lg:overflow-y-auto">
 			<!-- Undo/Redo & Load another -->
 			<div class="flex items-center gap-2">
 				<Button variant="outline" size="icon" class="size-8" onclick={handleUndo} disabled={!history.canUndo} title={history.canUndo ? `Undo: ${history.undoLabel}` : 'Nothing to undo'}>
@@ -338,7 +338,7 @@
 			</Button>
 
 			<!-- Image info -->
-			<div class="text-muted-foreground space-y-1 text-xs">
+			<div class="text-muted-foreground hidden space-y-1 text-xs lg:block">
 				<div>File: {fileName}</div>
 				<div>Size: {formatFileSize(fileSize)}</div>
 				<div>Dimensions: {image.width} x {image.height}</div>

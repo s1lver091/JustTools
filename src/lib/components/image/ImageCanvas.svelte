@@ -142,9 +142,9 @@
 			<canvas bind:this={canvasRef}></canvas>
 		</div>
 	</div>
-	<div class="bg-muted/50 flex items-center justify-between border-t px-3 py-1.5 text-xs">
-		<div class="text-muted-foreground flex items-center gap-3">
-			<span>{image.width} x {image.height}px</span>
+	<div class="bg-muted/50 flex items-center justify-between border-t px-2 py-1 text-xs sm:px-3 sm:py-1.5">
+		<div class="text-muted-foreground flex items-center gap-2 sm:gap-3">
+			<span class="hidden sm:inline">{image.width} x {image.height}px</span>
 			<span>{Math.round(zoom * 100)}%</span>
 		</div>
 		<div class="flex items-center gap-1">
