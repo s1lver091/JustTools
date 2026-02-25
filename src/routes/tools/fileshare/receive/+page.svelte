@@ -221,7 +221,7 @@
 			placeholder="Paste the connection code here..."
 			bind:value={offerInput}
 		></textarea>
-		<Button onclick={acceptOffer} disabled={isProcessing || !offerInput.trim()}>
+		<Button onclick={acceptOffer} disabled={isProcessing || !offerInput.trim() || connectionState !== 'new'}>
 			{#if isProcessing}
 				<LoadingSpinner size="sm" />
 				<span class="ml-2">Processing code...</span>

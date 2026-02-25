@@ -232,7 +232,7 @@
 				placeholder="Paste the answer code here..."
 				bind:value={answerInput}
 			></textarea>
-			<Button onclick={acceptAnswer} disabled={isConnecting || !answerInput.trim()}>
+			<Button onclick={acceptAnswer} disabled={isConnecting || !answerInput.trim() || connectionState !== 'new'}>
 				{#if isConnecting}
 					<LoadingSpinner size="sm" />
 					<span class="ml-2">Connecting...</span>

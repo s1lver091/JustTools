@@ -29,7 +29,11 @@ export class PeerConnection {
 	}
 
 	constructor() {
-		this.pc = new RTCPeerConnection({ iceServers: ICE_SERVERS });
+		this.pc = new RTCPeerConnection({
+			iceServers: ICE_SERVERS,
+			iceCandidatePoolSize: 10,
+			bundlePolicy: 'max-bundle'
+		});
 
 		this.pc.onconnectionstatechange = () => {
 			this.updateState();
@@ -65,6 +69,9 @@ export class PeerConnection {
 	 * Sender: accept the receiver's answer code.
 	 */
 	async acceptAnswer(encodedAnswer: string): Promise<void> {
+		if (this.pc.signalingState !== 'have-local-offer') {
+			throw new Error('Already connected or connection in wrong state.');
+		}
 		const answer = decodeSDP(encodedAnswer);
 		await this.pc.setRemoteDescription(answer);
 		this.setState('connecting');
@@ -74,6 +81,9 @@ export class PeerConnection {
 	 * Receiver: accept the sender's offer code and return an answer code.
 	 */
 	async acceptOffer(encodedOffer: string): Promise<string> {
+		if (this.pc.signalingState !== 'stable') {
+			throw new Error('Cannot accept offer: connection already in progress.');
+		}
 		const offer = decodeSDP(encodedOffer);
 		await this.pc.setRemoteDescription(offer);
 
