@@ -16,7 +16,14 @@ import {
 	ArrowRightLeft,
 	Info,
 	Pipette,
-	FolderSync
+	FolderSync,
+	Table,
+	QrCode,
+	Terminal,
+	KeyRound,
+	SmilePlus,
+	Clapperboard,
+	Type
 } from '@lucide/svelte';
 import type { Component } from 'svelte';
 
@@ -191,6 +198,62 @@ export const tools: Tool[] = [
 		icon: Share2,
 		description: 'Transfer files peer-to-peer on your local network using WebRTC.',
 		color: 'bg-purple-500/10 text-purple-500'
+	},
+	{
+		id: 'csv',
+		name: 'CSV Tools',
+		href: '/tools/csv',
+		icon: Table,
+		description: 'Parse, convert, validate, and analyze CSV files in the browser.',
+		color: 'bg-amber-500/10 text-amber-500'
+	},
+	{
+		id: 'dev',
+		name: 'Dev Tools',
+		href: '/tools/dev',
+		icon: Terminal,
+		description: 'Text diff, regex tester, hash generator, JWT inspector, and JSON tools.',
+		color: 'bg-slate-500/10 text-slate-500'
+	},
+	{
+		id: 'qrcode',
+		name: 'QR & Barcode',
+		href: '/tools/qrcode',
+		icon: QrCode,
+		description: 'Generate QR codes and barcodes with customization and export options.',
+		color: 'bg-zinc-500/10 text-zinc-500'
+	},
+	{
+		id: 'credentials',
+		name: 'Password & Username',
+		href: '/tools/credentials',
+		icon: KeyRound,
+		description: 'Generate secure passwords, passphrases, and usernames with strength analysis.',
+		color: 'bg-emerald-500/10 text-emerald-500'
+	},
+	{
+		id: 'chars',
+		name: 'Emoji & Characters',
+		href: '/tools/chars',
+		icon: SmilePlus,
+		description: 'Search, browse, and copy Unicode characters, emoji, and special symbols.',
+		color: 'bg-yellow-500/10 text-yellow-500'
+	},
+	{
+		id: 'media',
+		name: 'Video & Audio',
+		href: '/tools/media',
+		icon: Clapperboard,
+		description: 'Convert, compress, trim, and analyze video and audio files with FFmpeg.wasm.',
+		color: 'bg-pink-500/10 text-pink-500'
+	},
+	{
+		id: 'ascii',
+		name: 'ASCII Art',
+		href: '/tools/ascii',
+		icon: Type,
+		description: 'Convert text to ASCII art with FIGlet fonts and images to character art.',
+		color: 'bg-cyan-500/10 text-cyan-500'
 	}
 ];
 

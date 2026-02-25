@@ -1,0 +1,304 @@
+<script lang="ts">
+	import { ArrowUp, ArrowDown } from '@lucide/svelte'
+
+	interface Props {
+		headers: string[]
+		rows: string[][]
+		onCellEdit?: (row: number, col: number, value: string) => void
+		selectedRows?: Set<number>
+		onToggleRow?: (row: number) => void
+		onToggleAll?: () => void
+		editedCells?: Set<string>
+	}
+
+	let {
+		headers,
+		rows,
+		onCellEdit,
+		selectedRows = new Set<number>(),
+		onToggleRow,
+		onToggleAll,
+		editedCells = new Set<string>()
+	}: Props = $props()
+
+	const ROW_HEIGHT = 36
+	const BUFFER_ROWS = 10
+
+	type SortDir = 'asc' | 'desc' | null
+	let sortColumn = $state<number | null>(null)
+	let sortDir = $state<SortDir>(null)
+
+	let filters = $state<string[]>([])
+
+	$effect(() => {
+		if (headers.length > 0 && filters.length !== headers.length) {
+			filters = headers.map(() => '')
+		}
+	})
+
+	function handleSort(colIndex: number): void {
+		if (sortColumn === colIndex) {
+			if (sortDir === 'asc') sortDir = 'desc'
+			else if (sortDir === 'desc') {
+				sortDir = null
+				sortColumn = null
+			}
+		} else {
+			sortColumn = colIndex
+			sortDir = 'asc'
+		}
+	}
+
+	function compareValues(a: string, b: string): number {
+		const numA = Number(a)
+		const numB = Number(b)
+		if (!isNaN(numA) && !isNaN(numB) && a.trim() !== '' && b.trim() !== '') {
+			return numA - numB
+		}
+		return a.localeCompare(b, undefined, { sensitivity: 'base' })
+	}
+
+	const filteredRows = $derived.by(() => {
+		if (filters.every((f) => f === '')) return rows
+
+		return rows.filter((row) => {
+			return filters.every((filter, colIdx) => {
+				if (filter === '') return true
+				const cellValue = (row[colIdx] ?? '').toLowerCase()
+				return cellValue.includes(filter.toLowerCase())
+			})
+		})
+	})
+
+	const processedRows = $derived.by(() => {
+		const source = filteredRows
+		if (sortColumn === null || sortDir === null) return source
+
+		const col = sortColumn
+		const dir = sortDir
+		return source.slice().sort((a, b) => {
+			const cmp = compareValues(a[col] ?? '', b[col] ?? '')
+			return dir === 'asc' ? cmp : -cmp
+		})
+	})
+
+	const processedToOriginal = $derived.by(() => {
+		if (sortColumn === null && sortDir === null && filters.every((f) => f === '')) {
+			return null
+		}
+
+		const map = new Map<string, number>()
+		for (let i = 0; i < rows.length; i++) {
+			map.set(rows[i].join('\0'), i)
+		}
+
+		return processedRows.map((row) => map.get(row.join('\0')) ?? -1)
+	})
+
+	function getOriginalRowIndex(processedIndex: number): number {
+		if (processedToOriginal === null) return processedIndex
+		return processedToOriginal[processedIndex] ?? processedIndex
+	}
+
+	let containerRef = $state<HTMLDivElement | null>(null)
+	let scrollTop = $state(0)
+	let containerHeight = $state(400)
+
+	function handleScroll(): void {
+		if (containerRef) {
+			scrollTop = containerRef.scrollTop
+		}
+	}
+
+	$effect(() => {
+		if (containerRef) {
+			containerHeight = containerRef.clientHeight
+			const observer = new ResizeObserver((entries) => {
+				for (const entry of entries) {
+					containerHeight = entry.contentRect.height
+				}
+			})
+			observer.observe(containerRef)
+			return () => observer.disconnect()
+		}
+	})
+
+	const totalHeight = $derived(processedRows.length * ROW_HEIGHT)
+	const startIndex = $derived(Math.max(0, Math.floor(scrollTop / ROW_HEIGHT) - BUFFER_ROWS))
+	const endIndex = $derived(
+		Math.min(
+			processedRows.length,
+			Math.ceil((scrollTop + containerHeight) / ROW_HEIGHT) + BUFFER_ROWS
+		)
+	)
+	const visibleRows = $derived(processedRows.slice(startIndex, endIndex))
+	const offsetY = $derived(startIndex * ROW_HEIGHT)
+
+	let editingCell = $state<{ row: number; col: number } | null>(null)
+	let editValue = $state('')
+
+	function focusOnMount(node: HTMLInputElement): void {
+		node.focus()
+	}
+
+	function startEdit(rowIdx: number, colIdx: number): void {
+		if (!onCellEdit) return
+		const originalRow = getOriginalRowIndex(rowIdx)
+		editingCell = { row: originalRow, col: colIdx }
+		editValue = processedRows[rowIdx]?.[colIdx] ?? ''
+	}
+
+	function confirmEdit(): void {
+		if (editingCell && onCellEdit) {
+			onCellEdit(editingCell.row, editingCell.col, editValue)
+		}
+		editingCell = null
+	}
+
+	function cancelEdit(): void {
+		editingCell = null
+	}
+
+	function handleEditKeyDown(e: KeyboardEvent): void {
+		if (e.key === 'Enter') {
+			e.preventDefault()
+			confirmEdit()
+		} else if (e.key === 'Escape') {
+			e.preventDefault()
+			cancelEdit()
+		}
+	}
+
+	const showFilters = $derived(filters.some((f) => f !== '') || filters.length > 0)
+	const allSelected = $derived(
+		processedRows.length > 0 && processedRows.every((_, i) => selectedRows.has(getOriginalRowIndex(i)))
+	)
+</script>
+
+<div class="flex flex-col overflow-hidden rounded-lg border">
+	<div class="bg-muted/50 text-muted-foreground flex items-center gap-4 border-b px-3 py-1.5 text-xs">
+		<span>{headers.length} columns</span>
+		<span class="bg-border h-3 w-px"></span>
+		{#if filteredRows.length !== rows.length}
+			<span>Showing {filteredRows.length.toLocaleString()} of {rows.length.toLocaleString()} rows</span>
+		{:else}
+			<span>{rows.length.toLocaleString()} rows</span>
+		{/if}
+	</div>
+
+	<div
+		bind:this={containerRef}
+		class="relative flex-1 overflow-auto"
+		style="max-height: 70vh;"
+		onscroll={handleScroll}
+	>
+		<table class="w-full border-collapse text-sm" style="table-layout: auto;">
+			<thead class="bg-muted/80 sticky top-0 z-10">
+				<tr>
+					{#if onToggleRow}
+						<th class="border-border w-10 border-b px-2 py-2 text-center">
+							<input
+								type="checkbox"
+								checked={allSelected}
+								onchange={() => onToggleAll?.()}
+								class="accent-primary"
+							/>
+						</th>
+					{/if}
+					<th class="border-border text-muted-foreground w-12 border-b px-2 py-2 text-right text-xs font-medium">
+						#
+					</th>
+					{#each headers as header, colIdx (colIdx)}
+						<th
+							class="border-border hover:bg-muted cursor-pointer select-none border-b px-3 py-2 text-left text-xs font-medium transition-colors"
+							onclick={() => handleSort(colIdx)}
+						>
+							<span class="flex items-center gap-1">
+								{header}
+								{#if sortColumn === colIdx && sortDir === 'asc'}
+									<ArrowUp class="size-3" />
+								{:else if sortColumn === colIdx && sortDir === 'desc'}
+									<ArrowDown class="size-3" />
+								{/if}
+							</span>
+						</th>
+					{/each}
+				</tr>
+				{#if showFilters}
+					<tr>
+						{#if onToggleRow}
+							<th class="border-border border-b px-2 py-1"></th>
+						{/if}
+						<th class="border-border border-b px-2 py-1"></th>
+						{#each headers as _, colIdx (colIdx)}
+							<th class="border-border border-b px-1 py-1">
+								<input
+									type="text"
+									placeholder="Filter..."
+									class="bg-background border-border w-full rounded border px-2 py-0.5 text-xs"
+									bind:value={filters[colIdx]}
+								/>
+							</th>
+						{/each}
+					</tr>
+				{/if}
+			</thead>
+
+			<tbody>
+				{#if startIndex > 0}
+					<tr style="height: {offsetY}px;">
+						<td></td>
+					</tr>
+				{/if}
+				{#each visibleRows as row, vIdx (getOriginalRowIndex(startIndex + vIdx))}
+					{@const rowIdx = startIndex + vIdx}
+					{@const originalIdx = getOriginalRowIndex(rowIdx)}
+					<tr
+						class="hover:bg-muted/50 transition-colors {rowIdx % 2 === 0 ? '' : 'bg-muted/20'} {selectedRows.has(originalIdx) ? 'bg-primary/5' : ''}"
+						style="height: {ROW_HEIGHT}px;"
+					>
+						{#if onToggleRow}
+							<td class="border-border border-b px-2 text-center">
+								<input
+									type="checkbox"
+									checked={selectedRows.has(originalIdx)}
+									onchange={() => onToggleRow?.(originalIdx)}
+									class="accent-primary"
+								/>
+							</td>
+						{/if}
+						<td class="border-border text-muted-foreground border-b px-2 text-right text-xs">
+							{originalIdx + 1}
+						</td>
+						{#each row as cell, colIdx (colIdx)}
+							{@const isEditing = editingCell?.row === originalIdx && editingCell?.col === colIdx}
+							{@const isEdited = editedCells.has(`${originalIdx}:${colIdx}`)}
+							<td
+								class="border-border max-w-xs truncate border-b px-3 py-1 {isEdited ? 'bg-amber-500/10' : ''}"
+								ondblclick={() => startEdit(rowIdx, colIdx)}
+							>
+								{#if isEditing}
+									<input
+										type="text"
+										class="bg-background border-primary w-full rounded border px-1 py-0.5 text-sm outline-none"
+										bind:value={editValue}
+										onblur={confirmEdit}
+										onkeydown={handleEditKeyDown}
+										use:focusOnMount
+									/>
+								{:else}
+									{cell}
+								{/if}
+							</td>
+						{/each}
+					</tr>
+				{/each}
+				{#if endIndex < processedRows.length}
+					<tr style="height: {totalHeight - endIndex * ROW_HEIGHT}px;">
+						<td></td>
+					</tr>
+				{/if}
+			</tbody>
+		</table>
+	</div>
+</div>
