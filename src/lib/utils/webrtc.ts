@@ -1,8 +1,13 @@
 import { deflateSync, inflateSync } from 'fflate';
 
-const ICE_SERVERS: RTCIceServer[] = [{ urls: 'stun:stun.l.google.com:19302' }];
+const ICE_SERVERS: RTCIceServer[] = [
+	{ urls: 'stun:stun.l.google.com:19302' },
+	{ urls: 'stun:stun1.l.google.com:19302' },
+	{ urls: 'stun:stun2.l.google.com:19302' },
+	{ urls: 'stun:stun.cloudflare.com:3478' }
+];
 
-const ICE_GATHERING_TIMEOUT_MS = 10000;
+const ICE_GATHERING_TIMEOUT_MS = 15000;
 
 type ConnectionState = 'new' | 'connecting' | 'connected' | 'disconnected' | 'error';
 
@@ -102,29 +107,51 @@ export class PeerConnection {
 			this.setState('connected');
 		} else if (cs === 'failed' || ice === 'failed') {
 			this.setState('error');
-		} else if (cs === 'disconnected' || ice === 'disconnected') {
+		} else if (cs === 'closed') {
 			this.setState('disconnected');
+		} else if (cs === 'disconnected' || ice === 'disconnected') {
+			// Transient disconnects are common on real networks.
+			// Only report failure after a grace period.
+			if (this._state === 'connected') {
+				setTimeout(() => {
+					const current = this.pc.connectionState;
+					if (current === 'disconnected' || current === 'failed') {
+						this.setState('disconnected');
+					}
+				}, 5000);
+			}
 		} else if (cs === 'connecting' || ice === 'checking') {
 			this.setState('connecting');
 		}
 	}
 
 	private waitForIceGathering(): Promise<void> {
-		return new Promise((resolve, reject) => {
+		return new Promise((resolve) => {
 			if (this.pc.iceGatheringState === 'complete') {
 				resolve();
 				return;
 			}
 
 			const timeout = setTimeout(() => {
+				this.pc.onicecandidate = null;
 				this.pc.onicegatheringstatechange = null;
-				// Resolve even on timeout - we may have enough candidates
 				resolve();
 			}, ICE_GATHERING_TIMEOUT_MS);
+
+			// null candidate signals gathering complete (most reliable method)
+			this.pc.onicecandidate = (event) => {
+				if (event.candidate === null) {
+					clearTimeout(timeout);
+					this.pc.onicecandidate = null;
+					this.pc.onicegatheringstatechange = null;
+					resolve();
+				}
+			};
 
 			this.pc.onicegatheringstatechange = () => {
 				if (this.pc.iceGatheringState === 'complete') {
 					clearTimeout(timeout);
+					this.pc.onicecandidate = null;
 					this.pc.onicegatheringstatechange = null;
 					resolve();
 				}
@@ -167,11 +194,12 @@ function stripSDP(sdp: string): string {
 	return sdp
 		.split('\r\n')
 		.filter((line) => {
-			// Keep essential lines only
 			if (line.startsWith('a=extmap:')) return false;
 			if (line.startsWith('a=rtpmap:')) return false;
 			if (line.startsWith('a=fmtp:')) return false;
 			if (line.startsWith('a=rtcp-fb:')) return false;
+			if (line.startsWith('a=msid-semantic:')) return false;
+			if (line.startsWith('a=ssrc:')) return false;
 			return true;
 		})
 		.join('\r\n');

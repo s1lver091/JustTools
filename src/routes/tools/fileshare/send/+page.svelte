@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { page } from '$app/state';
-	import { resolve } from '$app/paths';
+	import { base, resolve } from '$app/paths';
 	import ToolHeader from '$lib/components/shared/ToolHeader.svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { Badge } from '$lib/components/ui/badge';
@@ -52,7 +52,7 @@
 	const qrUrl = $derived.by(() => {
 		if (!offerCode) return '';
 		const origin = page.url.origin;
-		return `${origin}/tools/fileshare/receive?code=${encodeURIComponent(offerCode)}`;
+		return `${origin}${base}/tools/fileshare/receive?code=${encodeURIComponent(offerCode)}`;
 	});
 
 	async function createConnection() {
