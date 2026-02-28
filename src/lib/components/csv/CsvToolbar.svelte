@@ -1,5 +1,7 @@
 <script lang="ts">
 	import { Button } from '$lib/components/ui/button'
+	import { Switch } from '$lib/components/ui/switch'
+	import { Label } from '$lib/components/ui/label'
 	import * as DropdownMenu from '$lib/components/ui/dropdown-menu'
 	import {
 		Download,
@@ -7,19 +9,21 @@
 		FileJson,
 		Table,
 		FileSpreadsheet,
-		Upload,
+		FolderOpen,
 		Plus,
 		Trash2,
 		Columns3,
 		ShieldCheck,
-		BarChart3
+		BarChart3,
+		Pencil
 	} from '@lucide/svelte'
 
 	interface Props {
 		hasData: boolean
 		onConvertTo: (format: 'json' | 'markdown' | 'tsv') => void
-		onImportJson: () => void
+		onOpenFile: () => void
 		onDownloadCsv: () => void
+		onDownloadExcel: () => void
 		onCopyClipboard: () => void
 		onAddRow: () => void
 		onDeleteRows: () => void
@@ -29,13 +33,16 @@
 		onToggleStats: () => void
 		hasSelectedRows: boolean
 		showStats: boolean
+		editorMode: boolean
+		onToggleEditorMode: () => void
 	}
 
 	let {
 		hasData,
 		onConvertTo,
-		onImportJson,
+		onOpenFile,
 		onDownloadCsv,
+		onDownloadExcel,
 		onCopyClipboard,
 		onAddRow,
 		onDeleteRows,
@@ -44,22 +51,47 @@
 		onValidate,
 		onToggleStats,
 		hasSelectedRows,
-		showStats
+		showStats,
+		editorMode,
+		onToggleEditorMode
 	}: Props = $props()
 </script>
 
 {#if hasData}
 	<div class="flex flex-wrap items-center gap-2">
+		<div class="flex items-center gap-2">
+			<Switch id="editor-mode" checked={editorMode} onCheckedChange={onToggleEditorMode} />
+			<Label for="editor-mode" class="flex items-center gap-1.5 text-sm">
+				<Pencil class="size-3.5" />
+				Editor
+			</Label>
+		</div>
+
+		<div class="bg-border mx-1 h-6 w-px"></div>
+
+		<Button variant="outline" size="sm" onclick={onOpenFile}>
+			<FolderOpen class="mr-1.5 size-4" />
+			Open
+		</Button>
+
 		<DropdownMenu.Root>
 			<DropdownMenu.Trigger>
 				{#snippet child({ props })}
 					<Button variant="outline" size="sm" {...props}>
-						<FileSpreadsheet class="mr-1.5 size-4" />
-						Convert to
+						<Download class="mr-1.5 size-4" />
+						Export to
 					</Button>
 				{/snippet}
 			</DropdownMenu.Trigger>
 			<DropdownMenu.Content>
+				<DropdownMenu.Item onclick={onDownloadCsv}>
+					<FileSpreadsheet class="mr-2 size-4" />
+					CSV
+				</DropdownMenu.Item>
+				<DropdownMenu.Item onclick={onDownloadExcel}>
+					<FileSpreadsheet class="mr-2 size-4" />
+					Excel (.xlsx)
+				</DropdownMenu.Item>
 				<DropdownMenu.Item onclick={() => onConvertTo('json')}>
 					<FileJson class="mr-2 size-4" />
 					JSON
@@ -72,36 +104,40 @@
 					<FileSpreadsheet class="mr-2 size-4" />
 					TSV
 				</DropdownMenu.Item>
+				<DropdownMenu.Separator />
+				<DropdownMenu.Item onclick={onCopyClipboard}>
+					<ClipboardCopy class="mr-2 size-4" />
+					Copy to clipboard
+				</DropdownMenu.Item>
 			</DropdownMenu.Content>
 		</DropdownMenu.Root>
 
-		<Button variant="outline" size="sm" onclick={onImportJson}>
-			<Upload class="mr-1.5 size-4" />
-			Import JSON
-		</Button>
-
 		<div class="bg-border mx-1 h-6 w-px"></div>
 
-		<Button variant="outline" size="sm" onclick={onAddRow}>
-			<Plus class="mr-1.5 size-4" />
-			Add Row
-		</Button>
-		<Button variant="outline" size="sm" onclick={onAddColumn}>
-			<Columns3 class="mr-1.5 size-4" />
-			Add Column
-		</Button>
+		{#if editorMode}
+			<Button variant="outline" size="sm" onclick={onAddRow}>
+				<Plus class="mr-1.5 size-4" />
+				Add Row
+			</Button>
+			<Button variant="outline" size="sm" onclick={onAddColumn}>
+				<Columns3 class="mr-1.5 size-4" />
+				Add Column
+			</Button>
+			<Button variant="outline" size="sm" onclick={onDeleteColumn}>
+				<Trash2 class="mr-1.5 size-4" />
+				Delete Column
+			</Button>
+		{/if}
 		{#if hasSelectedRows}
 			<Button variant="outline" size="sm" onclick={onDeleteRows}>
 				<Trash2 class="mr-1.5 size-4" />
 				Delete Rows
 			</Button>
 		{/if}
-		<Button variant="outline" size="sm" onclick={onDeleteColumn}>
-			<Trash2 class="mr-1.5 size-4" />
-			Delete Column
-		</Button>
 
-		<div class="bg-border mx-1 h-6 w-px"></div>
+		{#if editorMode || hasSelectedRows}
+			<div class="bg-border mx-1 h-6 w-px"></div>
+		{/if}
 
 		<Button variant="outline" size="sm" onclick={onValidate}>
 			<ShieldCheck class="mr-1.5 size-4" />
@@ -110,17 +146,6 @@
 		<Button variant={showStats ? 'default' : 'outline'} size="sm" onclick={onToggleStats}>
 			<BarChart3 class="mr-1.5 size-4" />
 			Statistics
-		</Button>
-
-		<div class="bg-border mx-1 h-6 w-px"></div>
-
-		<Button variant="outline" size="sm" onclick={onDownloadCsv}>
-			<Download class="mr-1.5 size-4" />
-			Download CSV
-		</Button>
-		<Button variant="outline" size="sm" onclick={onCopyClipboard}>
-			<ClipboardCopy class="mr-1.5 size-4" />
-			Copy
 		</Button>
 	</div>
 {/if}

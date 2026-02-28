@@ -29,6 +29,7 @@
 	let showValidation = $state(false)
 	let convertedOutput = $state<string | null>(null)
 	let convertedFormat = $state<string | null>(null)
+	let editorMode = $state(false)
 
 	let csvWorker: ReturnType<typeof createTypedWorker> | null = null
 
@@ -137,28 +138,43 @@
 		}
 	}
 
-	function handleImportJson(): void {
+	function handleOpenFile(): void {
 		const input = document.createElement('input')
 		input.type = 'file'
-		input.accept = '.json'
+		input.accept = '.csv,.tsv,.txt,.json'
 		input.onchange = async () => {
 			const file = input.files?.[0]
 			if (!file) return
 			try {
 				const text = await file.text()
-				const data = JSON.parse(text) as object[]
-				if (!Array.isArray(data)) {
-					console.error('JSON must be an array of objects')
-					return
+				const ext = file.name.split('.').pop()?.toLowerCase()
+
+				if (ext === 'json') {
+					const data = JSON.parse(text) as object[]
+					if (!Array.isArray(data)) {
+						console.error('JSON must be an array of objects')
+						return
+					}
+					const result = jsonToCsv(data)
+					applyParseResult({
+						...result,
+						delimiter: ',',
+						rowCount: result.rows.length
+					})
+					fileName = file.name
+				} else {
+					if (text.length > WORKER_THRESHOLD) {
+						loading = true
+						await parseInWorker(text)
+						loading = false
+					} else {
+						parseOnMainThread(text)
+					}
+					fileName = file.name
 				}
-				const result = jsonToCsv(data)
-				headers = result.headers
-				rows = result.rows
-				fileName = file.name.replace('.json', '.csv')
-				editedCells = new Set<string>()
-				selectedRows = new Set<number>()
 			} catch (err) {
-				console.error('Failed to parse JSON:', err)
+				console.error('Failed to open file:', err)
+				loading = false
 			}
 		}
 		input.click()
@@ -188,21 +204,42 @@
 		selectedRows = new Set<number>()
 	}
 
-	function handleAddColumn(): void {
-		const name = prompt('Column name:')
-		if (name === null || name.trim() === '') return
-		headers = [...headers, name.trim()]
+	function handleAddColumn(name?: string): void {
+		const colName = name ?? prompt('Column name:')
+		if (colName === null || colName.trim() === '') return
+		headers = [...headers, colName.trim()]
 		rows = rows.map((row) => [...row, ''])
 	}
 
-	function handleDeleteColumn(): void {
+	function handleDeleteColumn(colIdx?: number): void {
 		if (headers.length === 0) return
-		const name = prompt(`Delete column (enter name):\n${headers.join(', ')}`)
-		if (name === null) return
-		const idx = headers.indexOf(name.trim())
-		if (idx === -1) return
+		let idx = colIdx
+		if (idx === undefined) {
+			const name = prompt(`Delete column (enter name):\n${headers.join(', ')}`)
+			if (name === null) return
+			idx = headers.indexOf(name.trim())
+			if (idx === -1) return
+		}
 		headers = headers.filter((_, i) => i !== idx)
 		rows = rows.map((row) => row.filter((_, i) => i !== idx))
+	}
+
+	function handleMoveColumn(fromIdx: number, toIdx: number): void {
+		const newHeaders = [...headers]
+		const [movedHeader] = newHeaders.splice(fromIdx, 1)
+		newHeaders.splice(toIdx, 0, movedHeader)
+		headers = newHeaders
+
+		rows = rows.map((row) => {
+			const newRow = [...row]
+			const [movedCell] = newRow.splice(fromIdx, 1)
+			newRow.splice(toIdx, 0, movedCell)
+			return newRow
+		})
+	}
+
+	function handleToggleEditorMode(): void {
+		editorMode = !editorMode
 	}
 
 	function handleValidate(): void {
@@ -256,7 +293,26 @@
 		validationIssues = []
 		convertedOutput = null
 		convertedFormat = null
+		editorMode = false
 		cleanupWorker()
+	}
+
+	async function handleDownloadExcel(): Promise<void> {
+		const { exportToExcel } = await import('$lib/utils/csv-excel')
+		const buffer = await exportToExcel(headers, rows)
+		const suffix = editedCells.size > 0 ? '-edited' : ''
+		const name = fileName
+			? fileName.replace(/\.[^.]+$/, `${suffix}.xlsx`)
+			: `data${suffix}.xlsx`
+		const blob = new Blob([buffer], {
+			type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+		})
+		const url = URL.createObjectURL(blob)
+		const a = document.createElement('a')
+		a.href = url
+		a.download = name
+		a.click()
+		URL.revokeObjectURL(url)
 	}
 
 	$effect(() => {
@@ -294,8 +350,9 @@
 		<CsvToolbar
 			{hasData}
 			onConvertTo={handleConvertTo}
-			onImportJson={handleImportJson}
+			onOpenFile={handleOpenFile}
 			onDownloadCsv={handleDownloadCsv}
+			onDownloadExcel={handleDownloadExcel}
 			onCopyClipboard={handleCopyClipboard}
 			onAddRow={handleAddRow}
 			onDeleteRows={handleDeleteRows}
@@ -305,6 +362,8 @@
 			onToggleStats={handleToggleStats}
 			{hasSelectedRows}
 			{showStats}
+			{editorMode}
+			onToggleEditorMode={handleToggleEditorMode}
 		/>
 
 		{#if convertedOutput}
@@ -377,6 +436,10 @@
 			onToggleRow={handleToggleRow}
 			onToggleAll={handleToggleAll}
 			{editedCells}
+			{editorMode}
+			onDeleteColumn={handleDeleteColumn}
+			onMoveColumn={handleMoveColumn}
+			onAddColumn={handleAddColumn}
 		/>
 
 		{#if showStats}

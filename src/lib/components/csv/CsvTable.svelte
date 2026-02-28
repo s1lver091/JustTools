@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { ArrowUp, ArrowDown } from '@lucide/svelte'
+	import { ArrowUp, ArrowDown, X, Plus, GripVertical } from '@lucide/svelte'
 
 	interface Props {
 		headers: string[]
@@ -9,6 +9,10 @@
 		onToggleRow?: (row: number) => void
 		onToggleAll?: () => void
 		editedCells?: Set<string>
+		editorMode?: boolean
+		onDeleteColumn?: (colIdx: number) => void
+		onMoveColumn?: (fromIdx: number, toIdx: number) => void
+		onAddColumn?: (name: string) => void
 	}
 
 	let {
@@ -18,7 +22,11 @@
 		selectedRows = new Set<number>(),
 		onToggleRow,
 		onToggleAll,
-		editedCells = new Set<string>()
+		editedCells = new Set<string>(),
+		editorMode = false,
+		onDeleteColumn,
+		onMoveColumn,
+		onAddColumn
 	}: Props = $props()
 
 	const ROW_HEIGHT = 36
@@ -173,6 +181,63 @@
 	const allSelected = $derived(
 		processedRows.length > 0 && processedRows.every((_, i) => selectedRows.has(getOriginalRowIndex(i)))
 	)
+
+	let dragColumn = $state<number | null>(null)
+	let dragOverColumn = $state<number | null>(null)
+	let addingColumn = $state(false)
+	let newColumnName = $state('')
+
+	function handleDragStart(e: DragEvent, colIdx: number): void {
+		if (!editorMode) return
+		dragColumn = colIdx
+		if (e.dataTransfer) {
+			e.dataTransfer.effectAllowed = 'move'
+			e.dataTransfer.setData('text/plain', String(colIdx))
+		}
+	}
+
+	function handleDragOver(e: DragEvent, colIdx: number): void {
+		if (!editorMode || dragColumn === null) return
+		e.preventDefault()
+		dragOverColumn = colIdx
+	}
+
+	function handleDragLeave(): void {
+		dragOverColumn = null
+	}
+
+	function handleDrop(e: DragEvent, colIdx: number): void {
+		e.preventDefault()
+		if (dragColumn !== null && dragColumn !== colIdx && onMoveColumn) {
+			onMoveColumn(dragColumn, colIdx)
+		}
+		dragColumn = null
+		dragOverColumn = null
+	}
+
+	function handleDragEnd(): void {
+		dragColumn = null
+		dragOverColumn = null
+	}
+
+	function handleAddColumnSubmit(): void {
+		if (newColumnName.trim() && onAddColumn) {
+			onAddColumn(newColumnName.trim())
+		}
+		newColumnName = ''
+		addingColumn = false
+	}
+
+	function handleAddColumnKeyDown(e: KeyboardEvent): void {
+		if (e.key === 'Enter') {
+			e.preventDefault()
+			handleAddColumnSubmit()
+		} else if (e.key === 'Escape') {
+			e.preventDefault()
+			addingColumn = false
+			newColumnName = ''
+		}
+	}
 </script>
 
 <div class="flex flex-col overflow-hidden rounded-lg border">
@@ -210,19 +275,62 @@
 					</th>
 					{#each headers as header, colIdx (colIdx)}
 						<th
-							class="border-border hover:bg-muted cursor-pointer select-none border-b px-3 py-2 text-left text-xs font-medium transition-colors"
-							onclick={() => handleSort(colIdx)}
+							class="border-border select-none border-b px-3 py-2 text-left text-xs font-medium transition-colors {editorMode ? 'cursor-grab' : 'hover:bg-muted cursor-pointer'} {dragOverColumn === colIdx ? 'bg-primary/10' : ''}"
+							onclick={() => { if (!editorMode) handleSort(colIdx) }}
+							draggable={editorMode}
+							ondragstart={(e) => handleDragStart(e, colIdx)}
+							ondragover={(e) => handleDragOver(e, colIdx)}
+							ondragleave={handleDragLeave}
+							ondrop={(e) => handleDrop(e, colIdx)}
+							ondragend={handleDragEnd}
 						>
 							<span class="flex items-center gap-1">
-								{header}
-								{#if sortColumn === colIdx && sortDir === 'asc'}
-									<ArrowUp class="size-3" />
-								{:else if sortColumn === colIdx && sortDir === 'desc'}
-									<ArrowDown class="size-3" />
+								{#if editorMode}
+									<GripVertical class="text-muted-foreground size-3 shrink-0" />
+								{/if}
+								<span class="truncate">{header}</span>
+								{#if !editorMode}
+									{#if sortColumn === colIdx && sortDir === 'asc'}
+										<ArrowUp class="size-3" />
+									{:else if sortColumn === colIdx && sortDir === 'desc'}
+										<ArrowDown class="size-3" />
+									{/if}
+								{/if}
+								{#if editorMode}
+									<button
+										class="text-muted-foreground hover:text-destructive ml-auto shrink-0 rounded p-0.5 transition-colors"
+										onclick={(e) => { e.stopPropagation(); onDeleteColumn?.(colIdx) }}
+										title="Delete column"
+									>
+										<X class="size-3" />
+									</button>
 								{/if}
 							</span>
 						</th>
 					{/each}
+					{#if editorMode}
+						<th class="border-border border-b px-2 py-2 text-center">
+							{#if addingColumn}
+								<input
+									type="text"
+									class="bg-background border-primary w-24 rounded border px-2 py-0.5 text-xs"
+									placeholder="Name..."
+									bind:value={newColumnName}
+									onblur={handleAddColumnSubmit}
+									onkeydown={handleAddColumnKeyDown}
+									use:focusOnMount
+								/>
+							{:else}
+								<button
+									class="text-muted-foreground hover:text-foreground rounded p-1 transition-colors"
+									onclick={() => { addingColumn = true }}
+									title="Add column"
+								>
+									<Plus class="size-4" />
+								</button>
+							{/if}
+						</th>
+					{/if}
 				</tr>
 				{#if showFilters}
 					<tr>
@@ -240,6 +348,9 @@
 								/>
 							</th>
 						{/each}
+						{#if editorMode}
+							<th class="border-border border-b px-2 py-1"></th>
+						{/if}
 					</tr>
 				{/if}
 			</thead>
@@ -291,6 +402,9 @@
 								{/if}
 							</td>
 						{/each}
+						{#if editorMode}
+							<td class="border-border border-b"></td>
+						{/if}
 					</tr>
 				{/each}
 				{#if endIndex < processedRows.length}
