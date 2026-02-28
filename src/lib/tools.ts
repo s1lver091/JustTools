@@ -23,7 +23,11 @@ import {
 	KeyRound,
 	SmilePlus,
 	Clapperboard,
-	Type
+	Type,
+	Columns3,
+	Regex,
+	Hash,
+	Braces
 } from '@lucide/svelte';
 import type { Component } from 'svelte';
 
@@ -213,7 +217,44 @@ export const tools: Tool[] = [
 		href: '/tools/dev',
 		icon: Terminal,
 		description: 'Text diff, regex tester, hash generator, JWT inspector, and JSON tools.',
-		color: 'bg-slate-500/10 text-slate-500'
+		color: 'bg-orange-500/10 text-orange-500',
+		subTools: [
+			{
+				id: 'dev-diff',
+				name: 'Text Diff',
+				href: '/tools/dev/diff',
+				icon: Columns3,
+				description: 'Compare two texts side by side with color-coded differences'
+			},
+			{
+				id: 'dev-regex',
+				name: 'Regex Tester',
+				href: '/tools/dev/regex',
+				icon: Regex,
+				description: 'Test regular expressions with live match highlighting'
+			},
+			{
+				id: 'dev-hash',
+				name: 'Hash Generator',
+				href: '/tools/dev/hash',
+				icon: Hash,
+				description: 'Generate SHA hashes and encode/decode Base64, hex, and URLs'
+			},
+			{
+				id: 'dev-jwt',
+				name: 'JWT Inspector',
+				href: '/tools/dev/jwt',
+				icon: KeyRound,
+				description: 'Decode and inspect JWT tokens without verification'
+			},
+			{
+				id: 'dev-json',
+				name: 'JSON Tools',
+				href: '/tools/dev/json',
+				icon: Braces,
+				description: 'Format, minify, query, and convert JSON'
+			}
+		]
 	},
 	{
 		id: 'qrcode',
