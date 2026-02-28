@@ -7,6 +7,8 @@
 	import CsvStats from '$lib/components/csv/CsvStats.svelte'
 	import { Button } from '$lib/components/ui/button'
 	import * as Card from '$lib/components/ui/card'
+	import * as AlertDialog from '$lib/components/ui/alert-dialog'
+	import { Badge } from '$lib/components/ui/badge'
 	import { parseCsv, serializeCsv, validateCsv } from '$lib/utils/csv-parser'
 	import { csvToJson, csvToMarkdown, csvToTsv, jsonToCsv } from '$lib/utils/csv-convert'
 	import { createTypedWorker } from '$lib/workers/worker-utils'
@@ -30,6 +32,11 @@
 	let convertedOutput = $state<string | null>(null)
 	let convertedFormat = $state<string | null>(null)
 	let editorMode = $state(false)
+
+	let mergeDialogOpen = $state(false)
+	let mergeNewColumns = $state<string[]>([])
+	let pendingMergeHeaders = $state<string[]>([])
+	let pendingMergeRows = $state<string[][]>([])
 
 	let csvWorker: ReturnType<typeof createTypedWorker> | null = null
 
@@ -138,46 +145,126 @@
 		}
 	}
 
+	async function parseFileToHeadersAndRows(
+		file: File
+	): Promise<{ headers: string[]; rows: string[][] }> {
+		const ext = file.name.split('.').pop()?.toLowerCase()
+
+		if (ext === 'xlsx' || ext === 'xls') {
+			const buffer = await file.arrayBuffer()
+			const { parseExcelFile } = await import('$lib/utils/csv-excel')
+			return parseExcelFile(buffer)
+		}
+
+		if (ext === 'json') {
+			const text = await file.text()
+			const data = JSON.parse(text) as object[]
+			if (!Array.isArray(data)) throw new Error('JSON must be an array of objects')
+			return jsonToCsv(data)
+		}
+
+		const text = await file.text()
+		const result = parseCsv(text)
+		return { headers: result.headers, rows: result.rows }
+	}
+
 	function handleOpenFile(): void {
 		const input = document.createElement('input')
 		input.type = 'file'
-		input.accept = '.csv,.tsv,.txt,.json'
+		input.accept = '.csv,.tsv,.txt,.json,.xlsx,.xls'
 		input.onchange = async () => {
 			const file = input.files?.[0]
 			if (!file) return
 			try {
-				const text = await file.text()
-				const ext = file.name.split('.').pop()?.toLowerCase()
-
-				if (ext === 'json') {
-					const data = JSON.parse(text) as object[]
-					if (!Array.isArray(data)) {
-						console.error('JSON must be an array of objects')
-						return
-					}
-					const result = jsonToCsv(data)
-					applyParseResult({
-						...result,
-						delimiter: ',',
-						rowCount: result.rows.length
-					})
-					fileName = file.name
-				} else {
-					if (text.length > WORKER_THRESHOLD) {
-						loading = true
-						await parseInWorker(text)
-						loading = false
-					} else {
-						parseOnMainThread(text)
-					}
-					fileName = file.name
-				}
+				loading = true
+				const result = await parseFileToHeadersAndRows(file)
+				applyParseResult({
+					headers: result.headers,
+					rows: result.rows,
+					delimiter: ',',
+					rowCount: result.rows.length
+				})
+				fileName = file.name
 			} catch (err) {
 				console.error('Failed to open file:', err)
+			} finally {
 				loading = false
 			}
 		}
 		input.click()
+	}
+
+	function handleMergeFile(): void {
+		const input = document.createElement('input')
+		input.type = 'file'
+		input.accept = '.csv,.tsv,.txt,.json,.xlsx,.xls'
+		input.onchange = async () => {
+			const file = input.files?.[0]
+			if (!file) return
+			try {
+				loading = true
+				const result = await parseFileToHeadersAndRows(file)
+				loading = false
+
+				const currentSet = new Set(headers)
+				const newCols = result.headers.filter((h) => !currentSet.has(h))
+
+				if (newCols.length === 0) {
+					applyMerge(result.headers, result.rows)
+				} else {
+					pendingMergeHeaders = result.headers
+					pendingMergeRows = result.rows
+					mergeNewColumns = newCols
+					mergeDialogOpen = true
+				}
+			} catch (err) {
+				console.error('Failed to parse merge file:', err)
+				loading = false
+			}
+		}
+		input.click()
+	}
+
+	function applyMerge(incomingHeaders: string[], incomingRows: string[][]): void {
+		const mergedHeaders = [...headers]
+		for (const h of incomingHeaders) {
+			if (!mergedHeaders.includes(h)) mergedHeaders.push(h)
+		}
+
+		const padExistingRows = rows.map((row) => {
+			const padded = [...row]
+			for (let i = headers.length; i < mergedHeaders.length; i++) {
+				padded.push('')
+			}
+			return padded
+		})
+
+		const mappedNewRows = incomingRows.map((row) => {
+			const mapped: string[] = new Array(mergedHeaders.length).fill('')
+			for (let i = 0; i < incomingHeaders.length; i++) {
+				const targetIdx = mergedHeaders.indexOf(incomingHeaders[i])
+				if (targetIdx !== -1) mapped[targetIdx] = row[i] ?? ''
+			}
+			return mapped
+		})
+
+		headers = mergedHeaders
+		rows = [...padExistingRows, ...mappedNewRows]
+	}
+
+	function confirmMerge(): void {
+		applyMerge(pendingMergeHeaders, pendingMergeRows)
+		mergeDialogOpen = false
+		pendingMergeHeaders = []
+		pendingMergeRows = []
+		mergeNewColumns = []
+	}
+
+	function cancelMerge(): void {
+		mergeDialogOpen = false
+		pendingMergeHeaders = []
+		pendingMergeRows = []
+		mergeNewColumns = []
 	}
 
 	function handleDownloadCsv(): void {
@@ -331,7 +418,7 @@
 		<p class="text-muted-foreground text-sm">Parsing file...</p>
 	</div>
 {:else if !hasData}
-	<FileDropzone accept=".csv,.tsv,.txt" onFiles={handleFiles} />
+	<FileDropzone accept=".csv,.tsv,.txt,.xlsx,.xls" onFiles={handleFiles} />
 {:else}
 	<div class="flex flex-col gap-4">
 		<div class="flex items-center justify-between">
@@ -351,6 +438,7 @@
 			{hasData}
 			onConvertTo={handleConvertTo}
 			onOpenFile={handleOpenFile}
+			onMergeFile={handleMergeFile}
 			onDownloadCsv={handleDownloadCsv}
 			onDownloadExcel={handleDownloadExcel}
 			onCopyClipboard={handleCopyClipboard}
@@ -450,3 +538,27 @@
 		{/if}
 	</div>
 {/if}
+
+<AlertDialog.Root bind:open={mergeDialogOpen}>
+	<AlertDialog.Content>
+		<AlertDialog.Header>
+			<AlertDialog.Title>Merge columns mismatch</AlertDialog.Title>
+			<AlertDialog.Description>
+				The file you are merging has {mergeNewColumns.length} new column{mergeNewColumns.length === 1 ? '' : 's'}
+				not present in the current data. Existing rows will get empty values for these columns.
+			</AlertDialog.Description>
+		</AlertDialog.Header>
+		<div class="flex flex-wrap gap-1.5 py-2">
+			{#each mergeNewColumns as col (col)}
+				<Badge variant="secondary">{col}</Badge>
+			{/each}
+		</div>
+		<p class="text-muted-foreground text-xs">
+			{pendingMergeRows.length} row{pendingMergeRows.length === 1 ? '' : 's'} will be appended.
+		</p>
+		<AlertDialog.Footer>
+			<AlertDialog.Cancel onclick={cancelMerge}>Cancel</AlertDialog.Cancel>
+			<AlertDialog.Action onclick={confirmMerge}>Merge</AlertDialog.Action>
+		</AlertDialog.Footer>
+	</AlertDialog.Content>
+</AlertDialog.Root>

@@ -15,13 +15,15 @@
 		Columns3,
 		ShieldCheck,
 		BarChart3,
-		Pencil
+		Pencil,
+		Merge
 	} from '@lucide/svelte'
 
 	interface Props {
 		hasData: boolean
 		onConvertTo: (format: 'json' | 'markdown' | 'tsv') => void
 		onOpenFile: () => void
+		onMergeFile: () => void
 		onDownloadCsv: () => void
 		onDownloadExcel: () => void
 		onCopyClipboard: () => void
@@ -41,6 +43,7 @@
 		hasData,
 		onConvertTo,
 		onOpenFile,
+		onMergeFile,
 		onDownloadCsv,
 		onDownloadExcel,
 		onCopyClipboard,
@@ -72,6 +75,11 @@
 		<Button variant="outline" size="sm" onclick={onOpenFile}>
 			<FolderOpen class="mr-1.5 size-4" />
 			Open
+		</Button>
+
+		<Button variant="outline" size="sm" onclick={onMergeFile}>
+			<Merge class="mr-1.5 size-4" />
+			Merge
 		</Button>
 
 		<DropdownMenu.Root>

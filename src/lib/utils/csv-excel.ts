@@ -22,6 +22,19 @@ function detectCellType(value: string): { type: 'number' | 'date' | 'string'; pa
 	return { type: 'string', parsed: value }
 }
 
+function cellToString(value: ExcelJS.CellValue): string {
+	if (value === null || value === undefined) return ''
+	if (value instanceof Date) return value.toISOString().split('T')[0]
+	if (typeof value === 'object' && 'richText' in value) {
+		return (value as ExcelJS.CellRichTextValue).richText.map((rt) => rt.text).join('')
+	}
+	if (typeof value === 'object' && 'text' in value) {
+		return (value as ExcelJS.CellHyperlinkValue).text
+	}
+	if (typeof value === 'object' && 'error' in value) return ''
+	return String(value)
+}
+
 function estimateColumnWidth(header: string, rows: string[][], colIdx: number): number {
 	let maxLen = header.length
 	const sampleSize = Math.min(rows.length, 100)
@@ -98,4 +111,33 @@ export async function exportToExcel(
 
 	const buffer = await workbook.xlsx.writeBuffer()
 	return buffer as ArrayBuffer
+}
+
+export async function parseExcelFile(
+	arrayBuffer: ArrayBuffer
+): Promise<{ headers: string[]; rows: string[][] }> {
+	const workbook = new ExcelJS.Workbook()
+	await workbook.xlsx.load(arrayBuffer)
+
+	const sheet = workbook.worksheets[0]
+	if (!sheet || sheet.rowCount === 0) return { headers: [], rows: [] }
+
+	const headers: string[] = []
+	const firstRow = sheet.getRow(1)
+	firstRow.eachCell({ includeEmpty: true }, (cell, colNumber) => {
+		while (headers.length < colNumber - 1) headers.push('')
+		headers.push(cellToString(cell.value))
+	})
+
+	const rows: string[][] = []
+	for (let rowIdx = 2; rowIdx <= sheet.rowCount; rowIdx++) {
+		const excelRow = sheet.getRow(rowIdx)
+		const row: string[] = []
+		for (let colIdx = 1; colIdx <= headers.length; colIdx++) {
+			row.push(cellToString(excelRow.getCell(colIdx).value))
+		}
+		rows.push(row)
+	}
+
+	return { headers, rows }
 }
