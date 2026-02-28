@@ -7,6 +7,7 @@
 	import { generatePassword, type PasswordOptions } from '$lib/utils/password-gen';
 	import { generatePassphrase, type PassphraseOptions } from '$lib/utils/passphrase-gen';
 	import { generateUsername, type UsernameOptions } from '$lib/utils/username-gen';
+	import { base } from '$app/paths';
 
 	type GenerationType = 'password' | 'passphrase' | 'username';
 
@@ -84,7 +85,7 @@
 		const fetches: Promise<void>[] = [];
 		if (type === 'passphrase' && wordlist.length === 0) {
 			fetches.push(
-				fetch('/data/bip39-english.json')
+				fetch(`${base}/data/bip39-english.json`)
 					.then((r) => r.json())
 					.then((data: string[]) => {
 						wordlist = data;
@@ -93,12 +94,12 @@
 		}
 		if (type === 'username' && adjectives.length === 0) {
 			fetches.push(
-				fetch('/data/adjectives.json')
+				fetch(`${base}/data/adjectives.json`)
 					.then((r) => r.json())
 					.then((data: string[]) => {
 						adjectives = data;
 					}),
-				fetch('/data/nouns.json')
+				fetch(`${base}/data/nouns.json`)
 					.then((r) => r.json())
 					.then((data: string[]) => {
 						nouns = data;

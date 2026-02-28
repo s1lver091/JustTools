@@ -3,6 +3,7 @@
 	import { Switch } from '$lib/components/ui/switch';
 	import { Copy, Check, RefreshCw, Loader2 } from '@lucide/svelte';
 	import { generateUsername, type UsernameOptions } from '$lib/utils/username-gen';
+	import { base } from '$app/paths';
 
 	const BATCH_SIZE = 5;
 
@@ -17,8 +18,8 @@
 
 	async function loadWordlists(): Promise<void> {
 		const [adjRes, nounRes] = await Promise.all([
-			fetch('/data/adjectives.json'),
-			fetch('/data/nouns.json')
+			fetch(`${base}/data/adjectives.json`),
+			fetch(`${base}/data/nouns.json`)
 		]);
 		adjectives = await adjRes.json();
 		nouns = await nounRes.json();

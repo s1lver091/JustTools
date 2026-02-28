@@ -5,6 +5,7 @@
 	import * as Select from '$lib/components/ui/select';
 	import { Copy, Check, RefreshCw, Loader2 } from '@lucide/svelte';
 	import { generatePassphrase, type PassphraseOptions } from '$lib/utils/passphrase-gen';
+	import { base } from '$app/paths';
 
 	const SEPARATORS = [
 		{ value: ' ', label: 'Space' },
@@ -23,7 +24,7 @@
 	let loading = $state(true);
 
 	async function loadWordlist(): Promise<void> {
-		const response = await fetch('/data/bip39-english.json');
+		const response = await fetch(`${base}/data/bip39-english.json`);
 		wordlist = await response.json();
 		loading = false;
 	}
