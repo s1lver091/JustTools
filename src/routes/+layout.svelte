@@ -69,6 +69,11 @@
 	<a href={resolve('/')} class="flex items-center gap-2 px-4">
 		<Wrench class="text-primary size-5" />
 		<span class="text-lg font-semibold tracking-tight">JustTools</span>
+		<span
+			class="bg-muted text-muted-foreground rounded-full px-2 py-0.5 text-[10px] font-medium leading-none"
+		>
+			v{__APP_VERSION__}
+		</span>
 	</a>
 
 	<div class="flex flex-1 justify-center px-4">

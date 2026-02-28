@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { Button } from '$lib/components/ui/button';
+	import { Switch } from '$lib/components/ui/switch';
 	import { Label } from '$lib/components/ui/label';
 	import * as Select from '$lib/components/ui/select';
 	import { Copy, Check, Download, Loader2 } from '@lucide/svelte';
@@ -8,6 +9,13 @@
 	import { generateUsername, type UsernameOptions } from '$lib/utils/username-gen';
 
 	type GenerationType = 'password' | 'passphrase' | 'username';
+
+	const SEPARATORS = [
+		{ value: ' ', label: 'Space' },
+		{ value: '-', label: 'Dash' },
+		{ value: '.', label: 'Dot' },
+		{ value: '_', label: 'Underscore' }
+	];
 
 	const TYPE_OPTIONS: { value: GenerationType; label: string }[] = [
 		{ value: 'password', label: 'Password' },
@@ -31,27 +39,46 @@
 	let adjectives = $state<string[]>([]);
 	let nouns = $state<string[]>([]);
 
-	const passwordOptions: PasswordOptions = {
-		length: 16,
-		uppercase: true,
-		lowercase: true,
-		digits: true,
-		symbols: false,
-		excludeAmbiguous: false
-	};
+	// Password options
+	let pwLength = $state(16);
+	let pwUppercase = $state(true);
+	let pwLowercase = $state(true);
+	let pwDigits = $state(true);
+	let pwSymbols = $state(false);
+	let pwExcludeAmbiguous = $state(false);
 
-	const passphraseOptions: PassphraseOptions = {
-		wordCount: 4,
-		separator: '-',
-		capitalize: true,
-		addNumber: false
-	};
+	// Passphrase options
+	let ppWordCount = $state(4);
+	let ppSeparator = $state('-');
+	let ppCapitalize = $state(true);
+	let ppAddNumber = $state(false);
 
-	const usernameOptions: UsernameOptions = {
-		addNumber: true,
-		addSymbol: false,
-		leetspeak: false
-	};
+	// Username options
+	let unAddNumber = $state(true);
+	let unAddSymbol = $state(false);
+	let unLeetspeak = $state(false);
+
+	const passwordOptions = $derived<PasswordOptions>({
+		length: pwLength,
+		uppercase: pwUppercase,
+		lowercase: pwLowercase,
+		digits: pwDigits,
+		symbols: pwSymbols,
+		excludeAmbiguous: pwExcludeAmbiguous
+	});
+
+	const passphraseOptions = $derived<PassphraseOptions>({
+		wordCount: ppWordCount,
+		separator: ppSeparator,
+		capitalize: ppCapitalize,
+		addNumber: ppAddNumber
+	});
+
+	const usernameOptions = $derived<UsernameOptions>({
+		addNumber: unAddNumber,
+		addSymbol: unAddSymbol,
+		leetspeak: unLeetspeak
+	});
 
 	async function ensureWordlists(): Promise<void> {
 		const fetches: Promise<void>[] = [];
@@ -152,6 +179,107 @@
 			/>
 		</div>
 	</div>
+
+	{#if type === 'password'}
+		<div class="space-y-4 rounded-lg border p-4">
+			<p class="text-sm font-medium">Password Options</p>
+			<div class="space-y-2">
+				<div class="flex items-center justify-between">
+					<Label>Length</Label>
+					<span class="text-muted-foreground font-mono text-sm">{pwLength}</span>
+				</div>
+				<input
+					type="range"
+					min={8}
+					max={128}
+					step={1}
+					bind:value={pwLength}
+					class="w-full accent-emerald-500"
+				/>
+			</div>
+			<div class="grid gap-3 sm:grid-cols-2">
+				<label class="flex items-center justify-between gap-2 rounded-lg border p-3">
+					<span class="text-sm">Uppercase (A-Z)</span>
+					<Switch bind:checked={pwUppercase} />
+				</label>
+				<label class="flex items-center justify-between gap-2 rounded-lg border p-3">
+					<span class="text-sm">Lowercase (a-z)</span>
+					<Switch bind:checked={pwLowercase} />
+				</label>
+				<label class="flex items-center justify-between gap-2 rounded-lg border p-3">
+					<span class="text-sm">Digits (0-9)</span>
+					<Switch bind:checked={pwDigits} />
+				</label>
+				<label class="flex items-center justify-between gap-2 rounded-lg border p-3">
+					<span class="text-sm">Symbols (!@#$...)</span>
+					<Switch bind:checked={pwSymbols} />
+				</label>
+				<label class="flex items-center justify-between gap-2 rounded-lg border p-3 sm:col-span-2">
+					<span class="text-sm">Exclude ambiguous (0, O, 1, l, I)</span>
+					<Switch bind:checked={pwExcludeAmbiguous} />
+				</label>
+			</div>
+		</div>
+	{:else if type === 'passphrase'}
+		<div class="space-y-4 rounded-lg border p-4">
+			<p class="text-sm font-medium">Passphrase Options</p>
+			<div class="space-y-2">
+				<div class="flex items-center justify-between">
+					<Label>Words</Label>
+					<span class="text-muted-foreground font-mono text-sm">{ppWordCount}</span>
+				</div>
+				<input
+					type="range"
+					min={4}
+					max={8}
+					step={1}
+					bind:value={ppWordCount}
+					class="w-full accent-emerald-500"
+				/>
+			</div>
+			<div class="space-y-2">
+				<Label>Separator</Label>
+				<Select.Root type="single" bind:value={ppSeparator}>
+					<Select.Trigger class="w-full">
+						{SEPARATORS.find((s) => s.value === ppSeparator)?.label ?? 'Select'}
+					</Select.Trigger>
+					<Select.Content>
+						{#each SEPARATORS as sep (sep.value)}
+							<Select.Item value={sep.value}>{sep.label}</Select.Item>
+						{/each}
+					</Select.Content>
+				</Select.Root>
+			</div>
+			<div class="grid gap-3 sm:grid-cols-2">
+				<label class="flex items-center justify-between gap-2 rounded-lg border p-3">
+					<span class="text-sm">Capitalize words</span>
+					<Switch bind:checked={ppCapitalize} />
+				</label>
+				<label class="flex items-center justify-between gap-2 rounded-lg border p-3">
+					<span class="text-sm">Add random number</span>
+					<Switch bind:checked={ppAddNumber} />
+				</label>
+			</div>
+		</div>
+	{:else if type === 'username'}
+		<div class="space-y-4 rounded-lg border p-4">
+			<p class="text-sm font-medium">Username Options</p>
+			<div class="grid gap-3 sm:grid-cols-3">
+				<label class="flex items-center justify-between gap-2 rounded-lg border p-3">
+					<span class="text-sm">Add number</span>
+					<Switch bind:checked={unAddNumber} />
+				</label>
+				<label class="flex items-center justify-between gap-2 rounded-lg border p-3">
+					<span class="text-sm">Add symbol</span>
+					<Switch bind:checked={unAddSymbol} />
+				</label>
+				<label class="flex items-center justify-between gap-2 rounded-lg border p-3">
+					<span class="text-sm">Leetspeak</span>
+					<Switch bind:checked={unLeetspeak} />
+				</label>
+			</div>
+		</div>
+	{/if}
 
 	<Button onclick={generate} disabled={loading}>
 		{#if loading}
