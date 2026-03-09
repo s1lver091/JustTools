@@ -22,4 +22,9 @@ Thumbs.db
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 
+# Markdown files
+*.md
+!README.md
+!AGENTS.md
+
 todo
