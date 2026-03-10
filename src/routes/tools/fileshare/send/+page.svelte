@@ -13,7 +13,7 @@
 	import { PeerConnection } from '$lib/utils/webrtc';
 	import { sendFiles, type TransferProgress as TProgress } from '$lib/utils/transfer';
 	import { formatFileSize } from '$lib/utils/format';
-	import { Wifi, Copy, Check, X, Send, RotateCcw, ArrowLeft } from '@lucide/svelte';
+	import { Wifi, Copy, Check, X, Send, RotateCcw } from '@lucide/svelte';
 
 	type Resolvable = Parameters<typeof resolve>[0];
 
@@ -153,15 +153,7 @@
 	}
 </script>
 
-<div class="flex items-center gap-3">
-	<a
-		href={resolve('/tools/fileshare' as Resolvable)}
-		class="text-muted-foreground hover:text-foreground transition-colors"
-	>
-		<ArrowLeft class="size-5" />
-	</a>
-	<ToolHeader title="Send Files" description="Generate a connection code and share files" />
-</div>
+<ToolHeader title="Send Files" description="Generate a connection code and share files" />
 
 <PeerStatus state={connectionState} />
 

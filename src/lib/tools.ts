@@ -3,6 +3,8 @@ import {
 	FileCode,
 	ImageIcon,
 	Share2,
+	Upload,
+	Download,
 	Merge,
 	Scissors,
 	FileDown,
@@ -201,7 +203,23 @@ export const tools: Tool[] = [
 		href: '/tools/fileshare',
 		icon: Share2,
 		description: 'Transfer files peer-to-peer on your local network using WebRTC.',
-		color: 'bg-purple-500/10 text-purple-500'
+		color: 'bg-purple-500/10 text-purple-500',
+		subTools: [
+			{
+				id: 'fileshare-send',
+				name: 'Send Files',
+				href: '/tools/fileshare/send',
+				icon: Upload,
+				description: 'Select files and generate a connection code'
+			},
+			{
+				id: 'fileshare-receive',
+				name: 'Receive Files',
+				href: '/tools/fileshare/receive',
+				icon: Download,
+				description: 'Enter a connection code to receive files'
+			}
+		]
 	},
 	{
 		id: 'csv',

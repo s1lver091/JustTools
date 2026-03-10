@@ -16,7 +16,7 @@
 	} from '$lib/utils/transfer';
 	import { formatFileSize } from '$lib/utils/format';
 	import { downloadUrl, downloadBlob } from '$lib/utils/download';
-	import { Download, X, RotateCcw, ArrowLeft, Check, FileDown, Archive } from '@lucide/svelte';
+	import { Download, X, RotateCcw, Check, FileDown, Archive } from '@lucide/svelte';
 
 	type Resolvable = Parameters<typeof resolve>[0];
 
@@ -177,15 +177,7 @@
 	}
 </script>
 
-<div class="flex items-center gap-3">
-	<a
-		href={resolve('/tools/fileshare' as Resolvable)}
-		class="text-muted-foreground hover:text-foreground transition-colors"
-	>
-		<ArrowLeft class="size-5" />
-	</a>
-	<ToolHeader title="Receive Files" description="Enter a connection code to receive files" />
-</div>
+<ToolHeader title="Receive Files" description="Enter a connection code to receive files" />
 
 <PeerStatus state={connectionState} />
 
