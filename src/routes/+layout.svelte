@@ -10,6 +10,7 @@
 	import { resolve } from '$app/paths';
 	import { tools } from '$lib/tools';
 	import ToolSearch from '$lib/components/shared/ToolSearch.svelte';
+	import { Toaster } from '$lib/components/ui/sonner';
 	import './layout.css';
 
 	let { children }: { children: Snippet } = $props();
@@ -232,3 +233,5 @@
 </main>
 
 </Tooltip.Provider>
+
+<Toaster richColors position="bottom-right" />
