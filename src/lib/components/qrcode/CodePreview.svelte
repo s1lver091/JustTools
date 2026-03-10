@@ -2,6 +2,7 @@
 	import type { Snippet } from 'svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { Download, Copy, Check, ImageIcon, FileCode } from '@lucide/svelte';
+	import { downloadBlob } from '$lib/utils/download';
 
 	interface Props {
 		canvasEl?: HTMLCanvasElement | null;
@@ -31,12 +32,7 @@
 		);
 		if (!blob) return;
 
-		const url = URL.createObjectURL(blob);
-		const a = document.createElement('a');
-		a.href = url;
-		a.download = `${filename}-${Date.now()}.png`;
-		a.click();
-		URL.revokeObjectURL(url);
+		downloadBlob(blob, `${filename}-${Date.now()}.png`);
 	}
 
 	function svgToCanvas(): HTMLCanvasElement | null {
@@ -79,12 +75,7 @@
 		}
 
 		const blob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
-		const url = URL.createObjectURL(blob);
-		const a = document.createElement('a');
-		a.href = url;
-		a.download = `${filename}-${Date.now()}.svg`;
-		a.click();
-		URL.revokeObjectURL(url);
+		downloadBlob(blob, `${filename}-${Date.now()}.svg`);
 	}
 
 	function canvasToSvgFallback(canvas: HTMLCanvasElement): string {

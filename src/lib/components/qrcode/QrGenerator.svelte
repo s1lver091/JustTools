@@ -7,6 +7,7 @@
 	import * as Collapsible from '$lib/components/ui/collapsible';
 	import CodePreview from './CodePreview.svelte';
 	import { Settings, ChevronDown } from '@lucide/svelte';
+	import { downloadBlob } from '$lib/utils/download';
 	import {
 		type QrContentType,
 		type WifiData,
@@ -177,12 +178,7 @@
 				offscreen.toBlob((b) => resolve(b), 'image/png')
 			);
 			if (!blob) return;
-			const url = URL.createObjectURL(blob);
-			const a = document.createElement('a');
-			a.href = url;
-			a.download = `qrcode-${Date.now()}.png`;
-			a.click();
-			URL.revokeObjectURL(url);
+			downloadBlob(blob, `qrcode-${Date.now()}.png`);
 		} catch {
 			// silently ignore export errors
 		}

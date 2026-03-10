@@ -66,47 +66,34 @@
 		return a.localeCompare(b, undefined, { sensitivity: 'base' })
 	}
 
-	const filteredRows = $derived.by(() => {
-		if (filters.every((f) => f === '')) return rows
+	const filteredIndexed = $derived.by(() => {
+		if (filters.every((f) => f === '')) {
+			return rows.map((row, originalIndex) => ({ row, originalIndex }))
+		}
 
-		return rows.filter((row) => {
-			return filters.every((filter, colIdx) => {
+		const result: { row: string[]; originalIndex: number }[] = []
+		for (let i = 0; i < rows.length; i++) {
+			const row = rows[i]
+			const passes = filters.every((filter, colIdx) => {
 				if (filter === '') return true
 				const cellValue = (row[colIdx] ?? '').toLowerCase()
 				return cellValue.includes(filter.toLowerCase())
 			})
-		})
+			if (passes) result.push({ row, originalIndex: i })
+		}
+		return result
 	})
 
 	const processedRows = $derived.by(() => {
-		const source = filteredRows
-		if (sortColumn === null || sortDir === null) return source
+		if (sortColumn === null || sortDir === null) return filteredIndexed
 
 		const col = sortColumn
 		const dir = sortDir
-		return source.slice().sort((a, b) => {
-			const cmp = compareValues(a[col] ?? '', b[col] ?? '')
+		return filteredIndexed.slice().sort((a, b) => {
+			const cmp = compareValues(a.row[col] ?? '', b.row[col] ?? '')
 			return dir === 'asc' ? cmp : -cmp
 		})
 	})
-
-	const processedToOriginal = $derived.by(() => {
-		if (sortColumn === null && sortDir === null && filters.every((f) => f === '')) {
-			return null
-		}
-
-		const map = new Map<string, number>()
-		for (let i = 0; i < rows.length; i++) {
-			map.set(rows[i].join('\0'), i)
-		}
-
-		return processedRows.map((row) => map.get(row.join('\0')) ?? -1)
-	})
-
-	function getOriginalRowIndex(processedIndex: number): number {
-		if (processedToOriginal === null) return processedIndex
-		return processedToOriginal[processedIndex] ?? processedIndex
-	}
 
 	let containerRef = $state<HTMLDivElement | null>(null)
 	let scrollTop = $state(0)
@@ -139,7 +126,7 @@
 			Math.ceil((scrollTop + containerHeight) / ROW_HEIGHT) + BUFFER_ROWS
 		)
 	)
-	const visibleRows = $derived(processedRows.slice(startIndex, endIndex))
+	const visibleIndexed = $derived(processedRows.slice(startIndex, endIndex))
 	const offsetY = $derived(startIndex * ROW_HEIGHT)
 
 	let editingCell = $state<{ row: number; col: number } | null>(null)
@@ -151,9 +138,10 @@
 
 	function startEdit(rowIdx: number, colIdx: number): void {
 		if (!onCellEdit) return
-		const originalRow = getOriginalRowIndex(rowIdx)
-		editingCell = { row: originalRow, col: colIdx }
-		editValue = processedRows[rowIdx]?.[colIdx] ?? ''
+		const entry = processedRows[rowIdx]
+		if (!entry) return
+		editingCell = { row: entry.originalIndex, col: colIdx }
+		editValue = entry.row[colIdx] ?? ''
 	}
 
 	function confirmEdit(): void {
@@ -177,9 +165,9 @@
 		}
 	}
 
-	const showFilters = $derived(filters.some((f) => f !== '') || filters.length > 0)
+	const showFilters = $derived(headers.length > 0)
 	const allSelected = $derived(
-		processedRows.length > 0 && processedRows.every((_, i) => selectedRows.has(getOriginalRowIndex(i)))
+		processedRows.length > 0 && processedRows.every((entry) => selectedRows.has(entry.originalIndex))
 	)
 
 	let dragColumn = $state<number | null>(null)
@@ -244,8 +232,8 @@
 	<div class="bg-muted/50 text-muted-foreground flex items-center gap-4 border-b px-3 py-1.5 text-xs">
 		<span>{headers.length} columns</span>
 		<span class="bg-border h-3 w-px"></span>
-		{#if filteredRows.length !== rows.length}
-			<span>Showing {filteredRows.length.toLocaleString()} of {rows.length.toLocaleString()} rows</span>
+		{#if filteredIndexed.length !== rows.length}
+			<span>Showing {filteredIndexed.length.toLocaleString()} of {rows.length.toLocaleString()} rows</span>
 		{:else}
 			<span>{rows.length.toLocaleString()} rows</span>
 		{/if}
@@ -361,9 +349,10 @@
 						<td></td>
 					</tr>
 				{/if}
-				{#each visibleRows as row, vIdx (getOriginalRowIndex(startIndex + vIdx))}
+				{#each visibleIndexed as entry, vIdx (entry.originalIndex)}
 					{@const rowIdx = startIndex + vIdx}
-					{@const originalIdx = getOriginalRowIndex(rowIdx)}
+					{@const originalIdx = entry.originalIndex}
+					{@const row = entry.row}
 					<tr
 						class="hover:bg-muted/50 transition-colors {rowIdx % 2 === 0 ? '' : 'bg-muted/20'} {selectedRows.has(originalIdx) ? 'bg-primary/5' : ''}"
 						style="height: {ROW_HEIGHT}px;"

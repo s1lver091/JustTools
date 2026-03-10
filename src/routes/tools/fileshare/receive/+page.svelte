@@ -15,6 +15,7 @@
 		type TransferProgress as TProgress
 	} from '$lib/utils/transfer';
 	import { formatFileSize } from '$lib/utils/format';
+	import { downloadUrl, downloadBlob } from '$lib/utils/download';
 	import { Download, X, RotateCcw, ArrowLeft, Check, FileDown, Archive } from '@lucide/svelte';
 
 	type Resolvable = Parameters<typeof resolve>[0];
@@ -138,12 +139,7 @@
 	}
 
 	function triggerDownload(url: string, filename: string) {
-		const a = document.createElement('a');
-		a.href = url;
-		a.download = filename;
-		document.body.appendChild(a);
-		a.click();
-		document.body.removeChild(a);
+		downloadUrl(url, filename);
 	}
 
 	function downloadFile(file: ReceivedFile) {
@@ -162,9 +158,7 @@
 
 		const zipped = zipSync(files);
 		const zipBlob = new Blob([zipped.buffer as ArrayBuffer], { type: 'application/zip' });
-		const url = URL.createObjectURL(zipBlob);
-		triggerDownload(url, 'received-files.zip');
-		URL.revokeObjectURL(url);
+		downloadBlob(zipBlob, 'received-files.zip');
 	}
 
 	function resetConnection() {

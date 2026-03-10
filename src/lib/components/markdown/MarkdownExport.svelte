@@ -3,6 +3,8 @@
 	import * as DropdownMenu from '$lib/components/ui/dropdown-menu';
 	import * as Tooltip from '$lib/components/ui/tooltip';
 	import { Share, Printer, FileDown, ClipboardCopy } from '@lucide/svelte';
+	import { toast } from 'svelte-sonner';
+	import { downloadBlob } from '$lib/utils/download';
 
 	interface Props {
 		html: string;
@@ -10,8 +12,6 @@
 	}
 
 	let { html, filename = 'document' }: Props = $props();
-
-	let copyNotification = $state(false);
 
 	function getPreviewStyles(): string {
 		return `
@@ -75,23 +75,15 @@ ${html}
 </html>`;
 
 		const blob = new Blob([fullHtml], { type: 'text/html' });
-		const url = URL.createObjectURL(blob);
-		const a = document.createElement('a');
-		a.href = url;
-		a.download = `${title}.html`;
-		a.click();
-		URL.revokeObjectURL(url);
+		downloadBlob(blob, `${title}.html`);
 	}
 
 	async function handleCopyHtml() {
 		try {
 			await navigator.clipboard.writeText(html);
-			copyNotification = true;
-			setTimeout(() => {
-				copyNotification = false;
-			}, 2000);
+			toast('Copied!');
 		} catch {
-			console.error('Failed to copy HTML to clipboard');
+			// clipboard write failed silently
 		}
 	}
 </script>
@@ -123,7 +115,7 @@ ${html}
 		</DropdownMenu.Item>
 		<DropdownMenu.Item onclick={handleCopyHtml}>
 			<ClipboardCopy class="mr-2 size-4" />
-			{copyNotification ? 'Copied!' : 'Copy HTML to Clipboard'}
+			Copy HTML to Clipboard
 		</DropdownMenu.Item>
 	</DropdownMenu.Content>
 </DropdownMenu.Root>

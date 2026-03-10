@@ -1,7 +1,8 @@
 <script lang="ts">
 	import { Button } from '$lib/components/ui/button';
-	import { Copy, Check, Download, ImageIcon } from '@lucide/svelte';
+	import { Copy, Download, ImageIcon } from '@lucide/svelte';
 	import { downloadTxt, renderAsciiToPng, downloadPng } from '$lib/utils/ascii-convert';
+	import { toast } from 'svelte-sonner';
 
 	interface Props {
 		output: string;
@@ -9,15 +10,10 @@
 
 	let { output }: Props = $props();
 
-	let copied = $state(false);
-
 	async function handleCopy(): Promise<void> {
 		if (!output) return;
 		await navigator.clipboard.writeText(output);
-		copied = true;
-		setTimeout(() => {
-			copied = false;
-		}, 2000);
+		toast('Copied!');
 	}
 
 	function handleDownloadTxt(): void {
@@ -34,13 +30,8 @@
 
 <div class="flex flex-wrap gap-2">
 	<Button variant="outline" size="sm" disabled={!output} onclick={handleCopy}>
-		{#if copied}
-			<Check class="size-4" />
-			Copied
-		{:else}
-			<Copy class="size-4" />
-			Copy
-		{/if}
+		<Copy class="size-4" />
+		Copy
 	</Button>
 	<Button variant="outline" size="sm" disabled={!output} onclick={handleDownloadTxt}>
 		<Download class="size-4" />

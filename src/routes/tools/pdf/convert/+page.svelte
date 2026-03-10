@@ -6,6 +6,7 @@
 	import { Input } from '$lib/components/ui/input';
 	import * as Tabs from '$lib/components/ui/tabs';
 	import { loadPdf, formatFileSize } from '$lib/utils/pdf';
+	import { downloadBlob, downloadText as downloadTextUtil } from '$lib/utils/download';
 	import type { PDFDocumentProxy } from '$lib/utils/pdf';
 	import {
 		FileText,
@@ -14,9 +15,9 @@
 		FileImage,
 		Plus,
 		GripVertical,
-		Copy,
-		ClipboardCheck
+		Copy
 	} from '@lucide/svelte';
+	import { toast } from 'svelte-sonner';
 
 	// PDF to Images state
 	let pdfFile = $state<File | null>(null);
@@ -46,7 +47,6 @@
 	let extracting = $state(false);
 	let extractedText = $state('');
 	let preserveLayout = $state(false);
-	let copied = $state(false);
 
 	const dpiScale = $derived(dpi / 72);
 
@@ -114,12 +114,7 @@
 
 		const zipped = zipSync(zipData);
 		const blob = new Blob([zipped as BlobPart], { type: 'application/zip' });
-		const url = URL.createObjectURL(blob);
-		const a = document.createElement('a');
-		a.href = url;
-		a.download = 'pdf_images.zip';
-		a.click();
-		URL.revokeObjectURL(url);
+		downloadBlob(blob, 'pdf_images.zip');
 	}
 
 	function revokeImageResults(): void {
@@ -314,18 +309,11 @@
 
 	async function copyToClipboard(): Promise<void> {
 		await navigator.clipboard.writeText(extractedText);
-		copied = true;
-		setTimeout(() => (copied = false), 2000);
+		toast('Copied!');
 	}
 
 	function downloadText(): void {
-		const blob = new Blob([extractedText], { type: 'text/plain' });
-		const url = URL.createObjectURL(blob);
-		const a = document.createElement('a');
-		a.href = url;
-		a.download = textPdfFile?.name?.replace(/\.pdf$/i, '.txt') ?? 'extracted.txt';
-		a.click();
-		URL.revokeObjectURL(url);
+		downloadTextUtil(extractedText, textPdfFile?.name?.replace(/\.pdf$/i, '.txt') ?? 'extracted.txt');
 	}
 
 	function cleanupTextExtract(): void {
@@ -576,13 +564,8 @@
 						<h3 class="text-sm font-semibold">Extracted Text</h3>
 						<div class="flex gap-2">
 							<Button variant="outline" size="sm" onclick={copyToClipboard}>
-								{#if copied}
-									<ClipboardCheck class="mr-1 size-4" />
-									Copied
-								{:else}
-									<Copy class="mr-1 size-4" />
-									Copy
-								{/if}
+								<Copy class="mr-1 size-4" />
+								Copy
 							</Button>
 							<Button variant="outline" size="sm" onclick={downloadText}>
 								<Download class="mr-1 size-4" />

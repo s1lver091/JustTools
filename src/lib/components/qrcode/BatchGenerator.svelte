@@ -3,6 +3,7 @@
 	import { Label } from '$lib/components/ui/label';
 	import * as Select from '$lib/components/ui/select';
 	import { Printer, Download, Loader2, QrCode, Barcode } from '@lucide/svelte';
+	import { downloadUrl } from '$lib/utils/download';
 	import { type BarcodeFormat, BARCODE_FORMATS, BARCODE_FORMAT_GROUPS } from '$lib/utils/qr-helpers';
 
 	type BatchMode = 'qr' | 'barcode';
@@ -114,11 +115,8 @@
 	async function downloadAll() {
 		for (const code of generatedCodes) {
 			if (!code.dataUrl) continue;
-			const a = document.createElement('a');
-			a.href = code.dataUrl;
 			const safeName = code.text.replace(/[^a-zA-Z0-9-_]/g, '_').slice(0, 40);
-			a.download = `${batchMode}-${safeName}-${Date.now()}.png`;
-			a.click();
+			downloadUrl(code.dataUrl, `${batchMode}-${safeName}-${Date.now()}.png`);
 			// Small delay to avoid browser blocking multiple downloads
 			await new Promise((r) => setTimeout(r, 100));
 		}

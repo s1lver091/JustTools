@@ -3,9 +3,10 @@
 	import { Switch } from '$lib/components/ui/switch';
 	import { Label } from '$lib/components/ui/label';
 	import * as Select from '$lib/components/ui/select';
-	import { Copy, Check, RefreshCw, Loader2 } from '@lucide/svelte';
+	import { Copy, RefreshCw, Loader2 } from '@lucide/svelte';
 	import { generatePassphrase, type PassphraseOptions } from '$lib/utils/passphrase-gen';
 	import { base } from '$app/paths';
+	import { toast } from 'svelte-sonner';
 
 	const SEPARATORS = [
 		{ value: ' ', label: 'Space' },
@@ -18,7 +19,6 @@
 	let separator = $state('-');
 	let capitalize = $state(true);
 	let addNumber = $state(false);
-	let copied = $state(false);
 	let seed = $state(0);
 	let wordlist = $state<string[]>([]);
 	let loading = $state(true);
@@ -56,10 +56,7 @@
 
 	async function copyToClipboard(): Promise<void> {
 		await navigator.clipboard.writeText(passphrase);
-		copied = true;
-		setTimeout(() => {
-			copied = false;
-		}, 1500);
+		toast('Copied!');
 	}
 </script>
 
@@ -78,11 +75,7 @@
 				onclick={copyToClipboard}
 				aria-label="Copy passphrase"
 			>
-				{#if copied}
-					<Check class="size-4 text-green-500" />
-				{:else}
-					<Copy class="size-4" />
-				{/if}
+				<Copy class="size-4" />
 			</Button>
 			<Button variant="ghost" size="icon" onclick={regenerate} aria-label="Regenerate passphrase">
 				<RefreshCw class="size-4" />

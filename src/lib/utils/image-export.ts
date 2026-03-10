@@ -1,4 +1,5 @@
 import type { ImageFormat } from './image-types';
+import { downloadBlob as _downloadBlob } from './download';
 
 const CANVAS_FORMATS = new Set<string>([
 	'image/jpeg',
@@ -84,12 +85,7 @@ function transferToOnscreen(offscreen: OffscreenCanvas): HTMLCanvasElement {
 }
 
 export function downloadBlob(blob: Blob, filename: string): void {
-	const url = URL.createObjectURL(blob);
-	const a = document.createElement('a');
-	a.href = url;
-	a.download = filename;
-	a.click();
-	URL.revokeObjectURL(url);
+	_downloadBlob(blob, filename);
 }
 
 export async function estimateFileSize(

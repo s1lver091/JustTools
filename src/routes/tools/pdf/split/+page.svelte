@@ -8,6 +8,7 @@
 	import * as Tabs from '$lib/components/ui/tabs';
 	import PdfThumbnails from '$lib/components/pdf/PdfThumbnails.svelte';
 	import { loadPdf, formatFileSize, parseRanges } from '$lib/utils/pdf';
+	import { downloadBlob } from '$lib/utils/download';
 	import type { PDFDocumentProxy } from '$lib/utils/pdf';
 	import { SvelteSet } from 'svelte/reactivity';
 	import { createTypedWorker } from '$lib/workers/worker-utils';
@@ -132,12 +133,7 @@
 
 		const zipped = zipSync(zipData);
 		const blob = new Blob([zipped as BlobPart], { type: 'application/zip' });
-		const url = URL.createObjectURL(blob);
-		const a = document.createElement('a');
-		a.href = url;
-		a.download = 'split_pdfs.zip';
-		a.click();
-		URL.revokeObjectURL(url);
+		downloadBlob(blob, 'split_pdfs.zip');
 	}
 
 	function revokeResults(): void {

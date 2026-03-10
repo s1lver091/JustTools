@@ -8,13 +8,13 @@
 	import { hashAllAlgorithms } from '$lib/utils/hash';
 	import type { HashAlgorithm } from '$lib/utils/hash';
 	import { toBase64, fromBase64, textToHex, hexToText, urlEncode, urlDecode } from '$lib/utils/encoding';
-	import { Copy, Check } from '@lucide/svelte';
+	import { Copy } from '@lucide/svelte';
+	import { toast } from 'svelte-sonner';
 
 	let hashInputMode = $state<'text' | 'file'>('text');
 	let hashText = $state('');
 	let hashFile = $state<File | null>(null);
 	let hashes = $state<Record<HashAlgorithm, string>>({ 'SHA-1': '', 'SHA-256': '', 'SHA-512': '' });
-	let copiedKey = $state('');
 	let encodeInput = $state('');
 
 	type CodecState = { result: string; error: string };
@@ -61,12 +61,9 @@
 		}
 	}
 
-	async function copyToClipboard(text: string, key: string) {
+	async function copyToClipboard(text: string) {
 		await navigator.clipboard.writeText(text);
-		copiedKey = key;
-		setTimeout(() => {
-			copiedKey = '';
-		}, 1500);
+		toast('Copied!');
 	}
 
 	const algorithms: HashAlgorithm[] = ['SHA-1', 'SHA-256', 'SHA-512'];
@@ -113,13 +110,9 @@
 						size="icon"
 						class="size-8 shrink-0"
 						disabled={!hashes[alg]}
-						onclick={() => copyToClipboard(hashes[alg], alg)}
+						onclick={() => copyToClipboard(hashes[alg])}
 					>
-						{#if copiedKey === alg}
-							<Check class="size-4 text-green-500" />
-						{:else}
-							<Copy class="size-4" />
-						{/if}
+						<Copy class="size-4" />
 					</Button>
 				</div>
 			{/each}
@@ -156,13 +149,9 @@
 								variant="ghost"
 								size="icon"
 								class="ml-auto size-8"
-								onclick={() => copyToClipboard(state.result, codec.label)}
+								onclick={() => copyToClipboard(state.result)}
 							>
-								{#if copiedKey === codec.label}
-									<Check class="size-4 text-green-500" />
-								{:else}
-									<Copy class="size-4" />
-								{/if}
+								<Copy class="size-4" />
 							</Button>
 						{/if}
 					</div>

@@ -6,6 +6,7 @@
 	import { Badge } from '$lib/components/ui/badge';
 	import PdfThumbnails from '$lib/components/pdf/PdfThumbnails.svelte';
 	import { loadPdf, formatFileSize } from '$lib/utils/pdf';
+	import { downloadBlob } from '$lib/utils/download';
 	import type { PDFDocumentProxy } from '$lib/utils/pdf';
 	import { SvelteSet } from 'svelte/reactivity';
 	import { createTypedWorker } from '$lib/workers/worker-utils';
@@ -121,12 +122,7 @@
 			worker.terminate();
 
 			const blob = new Blob([result as BlobPart], { type: 'application/pdf' });
-			const url = URL.createObjectURL(blob);
-			const a = document.createElement('a');
-			a.href = url;
-			a.download = file.name.replace(/\.pdf$/i, '_managed.pdf');
-			a.click();
-			URL.revokeObjectURL(url);
+			downloadBlob(blob, file.name.replace(/\.pdf$/i, '_managed.pdf'));
 		} catch (e) {
 			errorMsg = e instanceof Error ? e.message : 'Failed to process';
 		} finally {

@@ -5,13 +5,14 @@
 	import { Label } from '$lib/components/ui/label';
 	import { Badge } from '$lib/components/ui/badge';
 	import { jsonToYaml } from '$lib/utils/json-yaml';
-	import { Copy, Check, Download, CircleCheck, CircleX } from '@lucide/svelte';
+	import { downloadBlob } from '$lib/utils/download';
+	import { Copy, Download, CircleCheck, CircleX } from '@lucide/svelte';
+	import { toast } from 'svelte-sonner';
 
 	let jsonInput = $state('');
 	let output = $state('');
 	let outputFormat = $state<'json' | 'yaml'>('json');
 	let pathQuery = $state('');
-	let copiedOutput = $state(false);
 
 	type ParseResult = {
 		valid: boolean;
@@ -90,10 +91,7 @@
 	async function copyOutput() {
 		if (!output) return;
 		await navigator.clipboard.writeText(output);
-		copiedOutput = true;
-		setTimeout(() => {
-			copiedOutput = false;
-		}, 1500);
+		toast('Copied!');
 	}
 
 	function downloadOutput() {
@@ -101,12 +99,7 @@
 		const ext = outputFormat === 'yaml' ? 'yaml' : 'json';
 		const mime = outputFormat === 'yaml' ? 'text/yaml' : 'application/json';
 		const blob = new Blob([output], { type: mime });
-		const url = URL.createObjectURL(blob);
-		const a = document.createElement('a');
-		a.href = url;
-		a.download = `output.${ext}`;
-		a.click();
-		URL.revokeObjectURL(url);
+		downloadBlob(blob, `output.${ext}`);
 	}
 </script>
 
@@ -158,11 +151,7 @@
 				{#if output}
 					<div class="flex gap-1">
 						<Button variant="ghost" size="icon" class="size-8" onclick={copyOutput}>
-							{#if copiedOutput}
-								<Check class="size-4 text-green-500" />
-							{:else}
-								<Copy class="size-4" />
-							{/if}
+							<Copy class="size-4" />
 						</Button>
 						<Button variant="ghost" size="icon" class="size-8" onclick={downloadOutput}>
 							<Download class="size-4" />

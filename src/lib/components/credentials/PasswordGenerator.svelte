@@ -2,13 +2,14 @@
 	import { Button } from '$lib/components/ui/button';
 	import { Switch } from '$lib/components/ui/switch';
 	import { Label } from '$lib/components/ui/label';
-	import { Copy, Check, RefreshCw } from '@lucide/svelte';
+	import { Copy, RefreshCw } from '@lucide/svelte';
 	import {
 		generatePassword,
 		calculateEntropy,
 		buildCharset,
 		type PasswordOptions
 	} from '$lib/utils/password-gen';
+	import { toast } from 'svelte-sonner';
 
 	let length = $state(16);
 	let uppercase = $state(true);
@@ -16,7 +17,6 @@
 	let digits = $state(true);
 	let symbols = $state(false);
 	let excludeAmbiguous = $state(false);
-	let copied = $state(false);
 	let seed = $state(0);
 
 	const options = $derived<PasswordOptions>({
@@ -42,10 +42,7 @@
 
 	async function copyToClipboard(): Promise<void> {
 		await navigator.clipboard.writeText(password);
-		copied = true;
-		setTimeout(() => {
-			copied = false;
-		}, 1500);
+		toast('Copied!');
 	}
 </script>
 
@@ -53,11 +50,7 @@
 	<div class="bg-muted/50 flex items-center gap-2 rounded-lg border p-4">
 		<code class="flex-1 break-all font-mono text-lg select-all">{password}</code>
 		<Button variant="ghost" size="icon" onclick={copyToClipboard} aria-label="Copy password">
-			{#if copied}
-				<Check class="size-4 text-green-500" />
-			{:else}
-				<Copy class="size-4" />
-			{/if}
+			<Copy class="size-4" />
 		</Button>
 		<Button variant="ghost" size="icon" onclick={regenerate} aria-label="Regenerate password">
 			<RefreshCw class="size-4" />

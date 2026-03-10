@@ -1,9 +1,10 @@
 <script lang="ts">
 	import { Button } from '$lib/components/ui/button';
 	import { Switch } from '$lib/components/ui/switch';
-	import { Copy, Check, RefreshCw, Loader2 } from '@lucide/svelte';
+	import { Copy, RefreshCw, Loader2 } from '@lucide/svelte';
 	import { generateUsername, type UsernameOptions } from '$lib/utils/username-gen';
 	import { base } from '$app/paths';
+	import { toast } from 'svelte-sonner';
 
 	const BATCH_SIZE = 5;
 
@@ -11,7 +12,6 @@
 	let addSymbol = $state(false);
 	let leetspeak = $state(false);
 	let seed = $state(0);
-	let copiedIndex = $state(-1);
 	let adjectives = $state<string[]>([]);
 	let nouns = $state<string[]>([]);
 	let loading = $state(true);
@@ -46,10 +46,7 @@
 
 	async function copyUsername(index: number): Promise<void> {
 		await navigator.clipboard.writeText(usernames[index]);
-		copiedIndex = index;
-		setTimeout(() => {
-			copiedIndex = -1;
-		}, 1500);
+		toast('Copied!');
 	}
 </script>
 
@@ -70,11 +67,7 @@
 						onclick={() => copyUsername(i)}
 						aria-label="Copy username"
 					>
-						{#if copiedIndex === i}
-							<Check class="size-4 text-green-500" />
-						{:else}
-							<Copy class="size-4" />
-						{/if}
+						<Copy class="size-4" />
 					</Button>
 				</div>
 			{/each}

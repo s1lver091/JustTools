@@ -5,7 +5,8 @@
 	import * as Card from '$lib/components/ui/card';
 	import { Separator } from '$lib/components/ui/separator';
 	import { Badge } from '$lib/components/ui/badge';
-	import { Copy, ImagePlus, Crosshair, Check } from '@lucide/svelte';
+	import { Copy, ImagePlus, Crosshair } from '@lucide/svelte';
+	import { toast } from 'svelte-sonner';
 	import { loadImageBitmap, formatFileSize } from '$lib/utils/image-export';
 	import { rgbToHex, rgbToHsl } from '$lib/utils/image-filters';
 	import { ACCEPTED_IMAGE_TYPES } from '$lib/utils/image-types';
@@ -21,7 +22,6 @@
 	let showLoupe = $state(false);
 	let loupeX = $state(0);
 	let loupeY = $state(0);
-	let copiedFormat = $state<string | null>(null);
 
 	$effect(() => {
 		return () => {
@@ -137,10 +137,9 @@
 		showLoupe = false;
 	}
 
-	async function copyToClipboard(text: string, format: string): Promise<void> {
+	async function copyToClipboard(text: string): Promise<void> {
 		await navigator.clipboard.writeText(text);
-		copiedFormat = format;
-		setTimeout(() => { copiedFormat = null; }, 1500);
+		toast('Copied!');
 	}
 
 	async function pickFromScreen(): Promise<void> {
@@ -249,13 +248,9 @@
 										variant="ghost"
 										size="icon"
 										class="size-8"
-										onclick={() => copyToClipboard(fmt.value!, fmt.label)}
+										onclick={() => copyToClipboard(fmt.value!)}
 									>
-										{#if copiedFormat === fmt.label}
-											<Check class="size-4 text-green-500" />
-										{:else}
-											<Copy class="size-4" />
-										{/if}
+										<Copy class="size-4" />
 									</Button>
 								</div>
 							{/if}

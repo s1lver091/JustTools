@@ -13,7 +13,9 @@
 		Languages
 	} from '@lucide/svelte';
 	import { loadImageBitmap, formatFileSize } from '$lib/utils/image-export';
+	import { downloadBlob } from '$lib/utils/download';
 	import { ACCEPTED_IMAGE_TYPES } from '$lib/utils/image-types';
+	import { toast } from 'svelte-sonner';
 
 	interface OcrResult {
 		text: string;
@@ -28,7 +30,7 @@
 	let progressLabel = $state('');
 	let result = $state<OcrResult | null>(null);
 	let selectedLanguage = $state('eng');
-	let copied = $state(false);
+	let ocrError = $state('');
 
 	let previewCanvasRef = $state<HTMLCanvasElement | null>(null);
 	let sourceFile = $state<File | null>(null);
@@ -86,6 +88,7 @@
 		sourceFile = null;
 		progress = 0;
 		progressLabel = '';
+		ocrError = '';
 	}
 
 	async function extractText(): Promise<void> {
@@ -93,6 +96,7 @@
 		processing = true;
 		progress = 0;
 		progressLabel = 'Loading OCR engine...';
+		ocrError = '';
 
 		try {
 			const { createWorker } = await import('tesseract.js');
@@ -112,7 +116,7 @@
 
 			await worker.terminate();
 		} catch (err) {
-			console.error(err instanceof Error ? err.message : 'OCR failed');
+			ocrError = err instanceof Error ? err.message : 'OCR failed';
 		} finally {
 			processing = false;
 		}
@@ -121,19 +125,13 @@
 	async function copyText(): Promise<void> {
 		if (!result) return;
 		await navigator.clipboard.writeText(result.text);
-		copied = true;
-		setTimeout(() => { copied = false; }, 2000);
+		toast('Copied!');
 	}
 
 	function downloadText(): void {
 		if (!result) return;
 		const blob = new Blob([result.text], { type: 'text/plain' });
-		const url = URL.createObjectURL(blob);
-		const a = document.createElement('a');
-		a.href = url;
-		a.download = `${fileName.replace(/\.[^.]+$/, '')}-text.txt`;
-		a.click();
-		URL.revokeObjectURL(url);
+		downloadBlob(blob, `${fileName.replace(/\.[^.]+$/, '')}-text.txt`);
 	}
 
 	let wordCount = $derived(
@@ -215,6 +213,12 @@
 						></div>
 					</div>
 				{/if}
+
+				{#if ocrError}
+					<div class="rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-700 dark:text-red-400">
+						{ocrError}
+					</div>
+				{/if}
 			</Card.Content>
 		</Card.Root>
 
@@ -243,7 +247,7 @@
 						<div class="flex gap-2">
 							<Button variant="outline" class="flex-1" onclick={copyText}>
 								<Copy class="mr-2 size-4" />
-								{copied ? 'Copied!' : 'Copy Text'}
+								Copy Text
 							</Button>
 							<Button variant="outline" class="flex-1" onclick={downloadText}>
 								<Download class="mr-2 size-4" />

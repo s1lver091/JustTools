@@ -45,6 +45,10 @@
 	let isDrawing = $state(false);
 	let drawStart = $state<{ x: number; y: number } | null>(null);
 	let penPoints = $state<{ x: number; y: number }[]>([]);
+
+	// Pending text annotation state
+	let pendingTextAnnotation = $state<{ x: number; y: number } | null>(null);
+	let pendingText = $state('');
 	let renderingInProgress = false;
 	let pendingRender = false;
 
@@ -184,18 +188,8 @@
 
 		if (currentTool === 'text') {
 			const pdfPoint = canvasToPdf(point);
-			const content = prompt('Enter text:');
-			if (content) {
-				annotations.add({
-					id: crypto.randomUUID(),
-					type: 'text',
-					page: currentPage,
-					color: currentColor,
-					content,
-					position: { x: pdfPoint.x, y: pdfPoint.y },
-					fontSize: 14
-				});
-			}
+			pendingTextAnnotation = { x: pdfPoint.x, y: pdfPoint.y };
+			pendingText = '';
 			return;
 		}
 
@@ -606,6 +600,45 @@
 		ctx.restore();
 	}
 
+	function confirmTextAnnotation(): void {
+		if (!pendingTextAnnotation || pendingText.trim() === '') {
+			pendingTextAnnotation = null;
+			pendingText = '';
+			return;
+		}
+		annotations.add({
+			id: crypto.randomUUID(),
+			type: 'text',
+			page: currentPage,
+			color: currentColor,
+			content: pendingText.trim(),
+			position: { x: pendingTextAnnotation.x, y: pendingTextAnnotation.y },
+			fontSize: 14
+		});
+		pendingTextAnnotation = null;
+		pendingText = '';
+	}
+
+	function cancelTextAnnotation(): void {
+		pendingTextAnnotation = null;
+		pendingText = '';
+	}
+
+	const pendingTextCanvasPos = $derived(
+		pendingTextAnnotation
+			? pdfToCanvas(pendingTextAnnotation)
+			: null
+	);
+
+	function handleTextInputKeydown(e: KeyboardEvent): void {
+		if (e.key === 'Enter') {
+			e.preventDefault();
+			confirmTextAnnotation();
+		} else if (e.key === 'Escape') {
+			cancelTextAnnotation();
+		}
+	}
+
 	export async function saveToBlob(): Promise<Blob> {
 		const { PDFDocument, rgb } = await import('pdf-lib');
 		const buffer = await file.arrayBuffer();
@@ -758,9 +791,39 @@
 	<canvas
 		bind:this={overlayCanvas}
 		class="absolute top-0 left-0"
-		style="width: {canvasWidth}px; height: {canvasHeight}px; cursor: {currentTool === 'eraser' ? 'crosshair' : 'default'};"
+		style="width: {canvasWidth}px; height: {canvasHeight}px; cursor: {currentTool === 'eraser' ? 'crosshair' : currentTool === 'text' ? 'text' : 'default'};"
 		onpointerdown={handlePointerDown}
 		onpointermove={handlePointerMove}
 		onpointerup={handlePointerUp}
 	></canvas>
+
+	{#if pendingTextAnnotation && pendingTextCanvasPos}
+		<div
+			class="absolute z-10 flex items-center gap-1 rounded border border-blue-400 bg-white shadow-md dark:bg-zinc-900"
+			style="left: {pendingTextCanvasPos.x}px; top: {pendingTextCanvasPos.y - 32}px;"
+		>
+			<input
+				type="text"
+				bind:value={pendingText}
+				onkeydown={handleTextInputKeydown}
+				placeholder="Enter text..."
+				class="w-40 rounded-l px-2 py-1 text-sm outline-none dark:bg-zinc-900 dark:text-white"
+				autofocus
+			/>
+			<button
+				type="button"
+				onclick={confirmTextAnnotation}
+				class="px-2 py-1 text-sm font-medium text-blue-600 hover:text-blue-800 dark:text-blue-400"
+			>
+				OK
+			</button>
+			<button
+				type="button"
+				onclick={cancelTextAnnotation}
+				class="px-2 py-1 text-sm text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-300"
+			>
+				X
+			</button>
+		</div>
+	{/if}
 </div>

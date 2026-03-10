@@ -10,6 +10,7 @@
 	import * as AlertDialog from '$lib/components/ui/alert-dialog'
 	import { Badge } from '$lib/components/ui/badge'
 	import { parseCsv, serializeCsv, validateCsv } from '$lib/utils/csv-parser'
+	import { downloadBlob as downloadBlobUtil } from '$lib/utils/download'
 	import { csvToJson, csvToMarkdown, csvToTsv, jsonToCsv } from '$lib/utils/csv-convert'
 	import { createTypedWorker } from '$lib/workers/worker-utils'
 	import type { ParseResult, CsvIssue } from '$lib/utils/csv-parser'
@@ -32,6 +33,8 @@
 	let convertedOutput = $state<string | null>(null)
 	let convertedFormat = $state<string | null>(null)
 	let editorMode = $state(false)
+
+	let errorMessage = $state('')
 
 	let mergeDialogOpen = $state(false)
 	let mergeNewColumns = $state<string[]>([])
@@ -56,6 +59,7 @@
 
 		loading = true
 		fileName = file.name
+		errorMessage = ''
 
 		try {
 			const text = await file.text()
@@ -66,7 +70,7 @@
 				parseOnMainThread(text)
 			}
 		} catch (err) {
-			console.error('Failed to parse CSV:', err)
+			errorMessage = 'Failed to parse CSV: ' + (err instanceof Error ? err.message : 'Unknown error')
 		} finally {
 			loading = false
 		}
@@ -175,6 +179,7 @@
 		input.onchange = async () => {
 			const file = input.files?.[0]
 			if (!file) return
+			errorMessage = ''
 			try {
 				loading = true
 				const result = await parseFileToHeadersAndRows(file)
@@ -186,7 +191,7 @@
 				})
 				fileName = file.name
 			} catch (err) {
-				console.error('Failed to open file:', err)
+				errorMessage = 'Failed to open file: ' + (err instanceof Error ? err.message : 'Unknown error')
 			} finally {
 				loading = false
 			}
@@ -201,6 +206,7 @@
 		input.onchange = async () => {
 			const file = input.files?.[0]
 			if (!file) return
+			errorMessage = ''
 			try {
 				loading = true
 				const result = await parseFileToHeadersAndRows(file)
@@ -218,7 +224,7 @@
 					mergeDialogOpen = true
 				}
 			} catch (err) {
-				console.error('Failed to parse merge file:', err)
+				errorMessage = 'Failed to parse merge file: ' + (err instanceof Error ? err.message : 'Unknown error')
 				loading = false
 			}
 		}
@@ -273,7 +279,7 @@
 		const name = fileName
 			? fileName.replace(/\.[^.]+$/, `${suffix}.csv`)
 			: `data${suffix}.csv`
-		downloadBlob(csv, name, 'text/csv')
+		downloadBlobUtil(new Blob([csv], { type: 'text/csv' }), name)
 	}
 
 	function handleCopyClipboard(): void {
@@ -292,23 +298,17 @@
 	}
 
 	function handleAddColumn(name?: string): void {
-		const colName = name ?? prompt('Column name:')
-		if (colName === null || colName.trim() === '') return
+		const colName = name ?? `Column ${headers.length + 1}`
+		if (colName.trim() === '') return
 		headers = [...headers, colName.trim()]
 		rows = rows.map((row) => [...row, ''])
 	}
 
 	function handleDeleteColumn(colIdx?: number): void {
 		if (headers.length === 0) return
-		let idx = colIdx
-		if (idx === undefined) {
-			const name = prompt(`Delete column (enter name):\n${headers.join(', ')}`)
-			if (name === null) return
-			idx = headers.indexOf(name.trim())
-			if (idx === -1) return
-		}
-		headers = headers.filter((_, i) => i !== idx)
-		rows = rows.map((row) => row.filter((_, i) => i !== idx))
+		if (colIdx === undefined) return
+		headers = headers.filter((_, i) => i !== colIdx)
+		rows = rows.map((row) => row.filter((_, i) => i !== colIdx))
 	}
 
 	function handleMoveColumn(fromIdx: number, toIdx: number): void {
@@ -338,16 +338,6 @@
 		showStats = !showStats
 	}
 
-	function downloadBlob(content: string, filename: string, mimeType: string): void {
-		const blob = new Blob([content], { type: mimeType })
-		const url = URL.createObjectURL(blob)
-		const a = document.createElement('a')
-		a.href = url
-		a.download = filename
-		a.click()
-		URL.revokeObjectURL(url)
-	}
-
 	function downloadConverted(): void {
 		if (!convertedOutput || !convertedFormat) return
 		const ext = convertedFormat === 'JSON' ? 'json' : convertedFormat === 'TSV' ? 'tsv' : 'md'
@@ -360,7 +350,7 @@
 		const name = fileName
 			? fileName.replace(/\.[^.]+$/, `.${ext}`)
 			: `data.${ext}`
-		downloadBlob(convertedOutput, name, mime)
+		downloadBlobUtil(new Blob([convertedOutput], { type: mime }), name)
 	}
 
 	function copyConverted(): void {
@@ -394,12 +384,7 @@
 		const blob = new Blob([buffer], {
 			type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
 		})
-		const url = URL.createObjectURL(blob)
-		const a = document.createElement('a')
-		a.href = url
-		a.download = name
-		a.click()
-		URL.revokeObjectURL(url)
+		downloadBlobUtil(blob, name)
 	}
 
 	$effect(() => {
@@ -419,6 +404,11 @@
 	</div>
 {:else if !hasData}
 	<FileDropzone accept=".csv,.tsv,.txt,.xlsx,.xls" onFiles={handleFiles} />
+	{#if errorMessage}
+		<div class="rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-700 dark:text-red-400">
+			{errorMessage}
+		</div>
+	{/if}
 {:else}
 	<div class="flex flex-col gap-4">
 		<div class="flex items-center justify-between">
@@ -453,6 +443,12 @@
 			{editorMode}
 			onToggleEditorMode={handleToggleEditorMode}
 		/>
+
+		{#if errorMessage}
+			<div class="rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-700 dark:text-red-400">
+				{errorMessage}
+			</div>
+		{/if}
 
 		{#if convertedOutput}
 			<Card.Root>

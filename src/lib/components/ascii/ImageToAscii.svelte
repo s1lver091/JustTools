@@ -39,16 +39,22 @@
 		const file = files[0];
 		if (!file || !file.type.startsWith('image/')) return;
 
-		const reader = new FileReader();
-		reader.onload = (e) => {
-			const result = e.target?.result;
-			if (typeof result === 'string') {
-				imageSrc = result;
-				loadImageData(result);
+		if (imageSrc.startsWith('blob:')) {
+			URL.revokeObjectURL(imageSrc);
+		}
+
+		const objectUrl = URL.createObjectURL(file);
+		imageSrc = objectUrl;
+		loadImageData(objectUrl);
+	}
+
+	$effect(() => {
+		return () => {
+			if (imageSrc.startsWith('blob:')) {
+				URL.revokeObjectURL(imageSrc);
 			}
 		};
-		reader.readAsDataURL(file);
-	}
+	});
 
 	function loadImageData(src: string): void {
 		const img = new Image();

@@ -1,7 +1,8 @@
+import { downloadText as _downloadText, downloadUrl } from './download';
+
 export const CHARACTER_RAMPS = {
 	standard: ' .:-=+*#%@',
 	block: ' \u2591\u2592\u2593\u2588',
-	shade: ' \u2591\u2592\u2593\u2588',
 	dense: " .',:;!|\\/)({}<>[]?+~_-^*\"#&%@"
 } as const;
 
@@ -47,13 +48,7 @@ export function imageDataToAscii(imageData: ImageData, options: AsciiOptions): s
 }
 
 export function downloadTxt(text: string, filename: string): void {
-	const blob = new Blob([text], { type: 'text/plain' });
-	const url = URL.createObjectURL(blob);
-	const a = document.createElement('a');
-	a.href = url;
-	a.download = filename;
-	a.click();
-	URL.revokeObjectURL(url);
+	_downloadText(text, filename);
 }
 
 export function renderAsciiToPng(text: string): string {
@@ -86,8 +81,5 @@ export function renderAsciiToPng(text: string): string {
 }
 
 export function downloadPng(dataUrl: string, filename: string): void {
-	const a = document.createElement('a');
-	a.href = dataUrl;
-	a.download = filename;
-	a.click();
+	downloadUrl(dataUrl, filename);
 }

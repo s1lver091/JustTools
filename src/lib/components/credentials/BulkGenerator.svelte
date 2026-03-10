@@ -3,7 +3,9 @@
 	import { Switch } from '$lib/components/ui/switch';
 	import { Label } from '$lib/components/ui/label';
 	import * as Select from '$lib/components/ui/select';
-	import { Copy, Check, Download, Loader2 } from '@lucide/svelte';
+	import { Copy, Download, Loader2 } from '@lucide/svelte';
+	import { toast } from 'svelte-sonner';
+	import { downloadBlob } from '$lib/utils/download';
 	import { generatePassword, type PasswordOptions } from '$lib/utils/password-gen';
 	import { generatePassphrase, type PassphraseOptions } from '$lib/utils/passphrase-gen';
 	import { generateUsername, type UsernameOptions } from '$lib/utils/username-gen';
@@ -33,7 +35,6 @@
 	let type = $state<GenerationType>('password');
 	let count = $state(10);
 	let items = $state<string[]>([]);
-	let copied = $state(false);
 	let loading = $state(false);
 
 	let wordlist = $state<string[]>([]);
@@ -132,20 +133,12 @@
 
 	async function copyAll(): Promise<void> {
 		await navigator.clipboard.writeText(items.join('\n'));
-		copied = true;
-		setTimeout(() => {
-			copied = false;
-		}, 1500);
+		toast('Copied!');
 	}
 
 	function downloadList(): void {
 		const blob = new Blob([items.join('\n')], { type: 'text/plain' });
-		const url = URL.createObjectURL(blob);
-		const a = document.createElement('a');
-		a.href = url;
-		a.download = FILENAMES[type];
-		a.click();
-		URL.revokeObjectURL(url);
+		downloadBlob(blob, FILENAMES[type]);
 	}
 </script>
 
@@ -294,13 +287,8 @@
 	{#if items.length > 0}
 		<div class="flex gap-2">
 			<Button variant="outline" size="sm" onclick={copyAll}>
-				{#if copied}
-					<Check class="mr-2 size-4 text-green-500" />
-					Copied!
-				{:else}
-					<Copy class="mr-2 size-4" />
-					Copy all
-				{/if}
+				<Copy class="mr-2 size-4" />
+				Copy all
 			</Button>
 			<Button variant="outline" size="sm" onclick={downloadList}>
 				<Download class="mr-2 size-4" />

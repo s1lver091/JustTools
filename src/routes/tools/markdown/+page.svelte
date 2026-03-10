@@ -10,6 +10,7 @@
 	import type { KeyBinding } from '@codemirror/view';
 	import { theme } from '$lib/stores/theme.svelte';
 	import { parseMarkdown } from '$lib/utils/markdown';
+	import { downloadBlob } from '$lib/utils/download';
 
 	const DEBOUNCE_MS = 150;
 	const AUTOSAVE_INTERVAL_MS = 5000;
@@ -124,7 +125,7 @@ Enjoy writing!
 				autoSaveIndicator = false;
 			}, 1500);
 		} catch {
-			console.error('Failed to save to localStorage');
+			// localStorage unavailable
 		}
 	}
 
@@ -289,12 +290,7 @@ Enjoy writing!
 			}
 		} else {
 			const blob = new Blob([content], { type: 'text/markdown' });
-			const url = URL.createObjectURL(blob);
-			const a = document.createElement('a');
-			a.href = url;
-			a.download = filename;
-			a.click();
-			URL.revokeObjectURL(url);
+			downloadBlob(blob, filename);
 			savedContent = content;
 			hasUnsavedChanges = false;
 		}

@@ -1,16 +1,14 @@
 <script lang="ts">
 	import { Button } from '$lib/components/ui/button';
-	import { Copy, Check } from '@lucide/svelte';
+	import { Copy } from '@lucide/svelte';
+	import { toast } from 'svelte-sonner';
 
 	let { code }: { code: string } = $props();
-
-	let copied = $state(false);
 
 	async function copyToClipboard() {
 		try {
 			await navigator.clipboard.writeText(code);
-			copied = true;
-			setTimeout(() => (copied = false), 2000);
+			toast('Copied!');
 		} catch {
 			// Fallback for older browsers
 			const textarea = document.createElement('textarea');
@@ -21,8 +19,7 @@
 			textarea.select();
 			document.execCommand('copy');
 			document.body.removeChild(textarea);
-			copied = true;
-			setTimeout(() => (copied = false), 2000);
+			toast('Copied!');
 		}
 	}
 </script>
@@ -40,12 +37,7 @@
 		class="absolute top-2 right-2"
 		onclick={copyToClipboard}
 	>
-		{#if copied}
-			<Check class="mr-1 size-3" />
-			Copied
-		{:else}
-			<Copy class="mr-1 size-3" />
-			Copy
-		{/if}
+		<Copy class="mr-1 size-3" />
+		Copy
 	</Button>
 </div>
